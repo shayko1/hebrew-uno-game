@@ -1,13 +1,15 @@
-import { PLAYERS } from './constants.js';
+import { PLAYERS, PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
-import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations } from './ui.js';
+import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
-import { showConfetti } from './animations.js';
+import { showConfetti, showActionFeedback, animateCardToDiscard } from './animations.js';
+import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 
 let state = null;
 let botTurnTimeout = null;
 
 function init() {
+  initAudio();
   showScreen('welcome-screen');
   renderWelcomeDecorations();
 
@@ -37,6 +39,24 @@ function startGame() {
   }
 }
 
+function playSpecialSound(cardValue) {
+  switch (cardValue) {
+    case SPECIAL_TYPES.SKIP:
+      soundSkip();
+      break;
+    case SPECIAL_TYPES.REVERSE:
+      soundReverse();
+      break;
+    case SPECIAL_TYPES.DRAW_TWO:
+      soundDrawTwo();
+      break;
+    case SPECIAL_TYPES.WILD:
+    case SPECIAL_TYPES.WILD_DRAW_FOUR:
+      soundWild();
+      break;
+  }
+}
+
 function handleCardClick(card) {
   if (!state || state.gameOver) return;
   if (state.currentPlayer !== PLAYERS.HUMAN) return;
@@ -51,6 +71,15 @@ function handleCardClick(card) {
 
   const success = playCard(state, PLAYERS.HUMAN, card.id);
   if (!success) return;
+
+  // Sound and visual feedback
+  soundCardPlay();
+  animateCardToDiscard();
+
+  if (card.type === 'special') {
+    playSpecialSound(card.value);
+    showActionFeedback(card.value);
+  }
 
   // UNO penalty: player has 1 card left but didn't call UNO
   if (state.hands[PLAYERS.HUMAN].length === 1 && !state.unoCalledBy.has(PLAYERS.HUMAN)) {
@@ -69,6 +98,12 @@ function handleColorChoice(color) {
   hideColorPicker();
 
   playCard(state, PLAYERS.HUMAN, card.id, color);
+  soundWild();
+  animateCardToDiscard();
+
+  if (card.value === SPECIAL_TYPES.WILD_DRAW_FOUR) {
+    showActionFeedback('wild_draw_four');
+  }
 
   // UNO penalty: player has 1 card left but didn't call UNO
   if (state.hands[PLAYERS.HUMAN].length === 1 && !state.unoCalledBy.has(PLAYERS.HUMAN)) {
@@ -87,6 +122,8 @@ function handleDrawPile() {
   const drawn = drawCards(state, PLAYERS.HUMAN, 1);
   if (drawn.length === 0) return;
 
+  soundCardDraw();
+
   const drawnCard = drawn[0];
   const topCard = getTopCard(state);
   const playable = getPlayableCards([drawnCard], topCard, state.currentColor);
@@ -96,6 +133,7 @@ function handleDrawPile() {
     renderGame(state, handleCardClick);
   } else {
     // Not playable — advance turn
+    showToast('שלפת קלף ועברת...');
     state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction);
     afterTurnEnd();
   }
@@ -104,6 +142,7 @@ function handleDrawPile() {
 function handleUnoCall() {
   if (!state) return;
   state.unoCalledBy.add(PLAYERS.HUMAN);
+  soundUno();
   showUnoPopup();
   renderGame(state, handleCardClick);
 }
@@ -118,6 +157,8 @@ function afterPlay() {
 
   if (state.currentPlayer !== PLAYERS.HUMAN) {
     scheduleBotTurn();
+  } else {
+    soundYourTurn();
   }
 }
 
@@ -131,6 +172,8 @@ function afterTurnEnd() {
 
   if (state.currentPlayer !== PLAYERS.HUMAN) {
     scheduleBotTurn();
+  } else {
+    soundYourTurn();
   }
 }
 
@@ -146,6 +189,7 @@ function executeBotTurn() {
   if (!state || state.gameOver) return;
 
   const botIndex = state.currentPlayer;
+  const botName = PLAYER_NAMES[botIndex];
 
   // Safety: if it's somehow the human's turn, just re-render
   if (botIndex === PLAYERS.HUMAN) {
@@ -166,13 +210,34 @@ function executeBotTurn() {
 
     // Bot calls UNO when going from 2 cards to 1
     if (hand.length === 2) {
+      soundUno();
       showUnoPopup();
     }
 
     playCard(state, botIndex, card.id, chosenColor);
+    soundBotPlay();
+    animateCardToDiscard();
+
+    // Show toast and feedback for special cards
+    if (card.type === 'special') {
+      playSpecialSound(card.value);
+      showActionFeedback(card.value);
+
+      if (card.value === SPECIAL_TYPES.DRAW_TWO) {
+        showToast(botName + ' משחק +2!');
+      } else if (card.value === SPECIAL_TYPES.WILD_DRAW_FOUR) {
+        showToast(botName + ' משחק +4!');
+      } else if (card.value === SPECIAL_TYPES.SKIP) {
+        showToast(botName + ' משחק דילוג!');
+      } else if (card.value === SPECIAL_TYPES.REVERSE) {
+        showToast(botName + ' משחק הפוך!');
+      }
+    }
   } else {
     // No playable card — draw one
     const drawn = drawCards(state, botIndex, 1);
+    showToast(botName + ' שולף קלף');
+    soundCardDraw();
 
     if (drawn.length > 0) {
       const drawnCard = drawn[0];
@@ -185,6 +250,13 @@ function executeBotTurn() {
           chosenColor = botChooseColor(state.hands[botIndex]);
         }
         playCard(state, botIndex, drawnCard.id, chosenColor);
+        soundBotPlay();
+        animateCardToDiscard();
+
+        if (drawnCard.type === 'special') {
+          playSpecialSound(drawnCard.value);
+          showActionFeedback(drawnCard.value);
+        }
       } else {
         // Can't play drawn card — advance turn
         state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction);
@@ -200,9 +272,11 @@ function executeBotTurn() {
 
 function endGame() {
   if (state.winner === PLAYERS.HUMAN) {
+    soundWin();
     showEndScreen('כל הכבוד! ניצחת!');
     showConfetti();
   } else {
+    soundLose();
     showEndScreen('!נסה שוב');
   }
 }

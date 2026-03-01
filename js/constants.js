@@ -35,7 +35,20 @@ export const PLAYERS = {
 
 export const PLAYER_NAMES = {
   0: 'אתה',
-  1: 'שחקן 2',
-  2: 'שחקן 3',
-  3: 'שחקן 4'
+  1: 'דובי 🐻',
+  2: 'חתולי 🐱',
+  3: 'ארנבי 🐰'
+};
+
+export const BOT_AVATARS = {
+  1: '🐻',
+  2: '🐱',
+  3: '🐰'
+};
+
+export const COLOR_NAMES = {
+  red: 'אדום',
+  blue: 'כחול',
+  green: 'ירוק',
+  yellow: 'צהוב'
 };

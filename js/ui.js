@@ -1,6 +1,6 @@
 // UI rendering and DOM manipulation
 
-import { HEBREW_NUMBERS, SPECIAL_SYMBOLS, COLOR_HEX, PLAYERS, PLAYER_NAMES } from './constants.js';
+import { HEBREW_NUMBERS, SPECIAL_SYMBOLS, COLOR_HEX, PLAYERS, PLAYER_NAMES, BOT_AVATARS, COLOR_NAMES } from './constants.js';
 import { getTopCard, canPlayCard } from './state.js';
 
 export function showScreen(screenId) {
@@ -11,6 +11,24 @@ export function showScreen(screenId) {
   if (target) {
     target.classList.remove('hidden');
   }
+}
+
+export function showToast(message, duration = 2000) {
+  const existing = document.querySelector('.game-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.classList.add('game-toast');
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  // Trigger animation
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
 /**
@@ -170,10 +188,30 @@ export function renderBotHands(state) {
     badge.textContent = String(cardCount);
     container.appendChild(badge);
 
-    // Name label
+    // Name label with avatar
     const existingName = container.querySelector('.bot-name');
     if (existingName) {
-      existingName.textContent = PLAYER_NAMES[index];
+      const avatar = BOT_AVATARS[index] || '';
+      existingName.innerHTML = '';
+      if (avatar) {
+        const avatarSpan = document.createElement('span');
+        avatarSpan.classList.add('bot-avatar');
+        avatarSpan.textContent = avatar;
+        existingName.appendChild(avatarSpan);
+        existingName.appendChild(document.createTextNode(' '));
+      }
+      existingName.appendChild(document.createTextNode(PLAYER_NAMES[index]));
+
+      // Thinking indicator
+      const existingThinking = container.querySelector('.thinking-dots');
+      if (existingThinking) existingThinking.remove();
+
+      if (state.currentPlayer === index) {
+        const thinking = document.createElement('span');
+        thinking.classList.add('thinking-dots');
+        existingName.appendChild(document.createTextNode(' '));
+        existingName.appendChild(thinking);
+      }
     }
   });
 }
@@ -193,19 +231,36 @@ export function renderCenterArea(state) {
   cardEl.style.cursor = 'default';
   discardPile.appendChild(cardEl);
 
-  // If wild card, show current color indicator
-  const existingIndicator = discardPile.querySelector('.current-color-indicator');
+  // Always show current color indicator
+  const existingIndicator = discardPile.querySelector('.color-indicator-bar');
   if (existingIndicator) {
     existingIndicator.remove();
   }
 
-  if (topCard.color === 'wild') {
-    const indicator = document.createElement('div');
-    indicator.classList.add('current-color-indicator');
-    indicator.style.background = COLOR_HEX[state.currentColor];
-    // Place it inside the discard pile (which has position: relative)
-    discardPile.appendChild(indicator);
+  const indicatorBar = document.createElement('div');
+  indicatorBar.classList.add('color-indicator-bar');
+
+  const dot = document.createElement('div');
+  dot.classList.add('color-indicator-dot');
+  dot.style.background = COLOR_HEX[state.currentColor] || COLOR_HEX.red;
+  indicatorBar.appendChild(dot);
+
+  const label = document.createElement('span');
+  label.classList.add('color-indicator-label');
+  label.textContent = COLOR_NAMES[state.currentColor] || '';
+  indicatorBar.appendChild(label);
+
+  discardPile.appendChild(indicatorBar);
+
+  // Draw pile count
+  const drawPileEl = document.getElementById('draw-pile');
+  let drawCount = drawPileEl.querySelector('.draw-count');
+  if (!drawCount) {
+    drawCount = document.createElement('span');
+    drawCount.classList.add('draw-count');
+    drawPileEl.appendChild(drawCount);
   }
+  drawCount.textContent = state.drawPile.length;
 
   // Direction indicator
   const dirIndicator = document.getElementById('direction-indicator');
