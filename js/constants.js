@@ -1,10 +1,10 @@
 export const COLORS = ['red', 'blue', 'green', 'yellow'];
 
 export const COLOR_HEX = {
-  red: '#FF5555',
-  blue: '#5555FF',
-  green: '#55AA55',
-  yellow: '#FFAA00',
+  red: '#FF4444',
+  blue: '#4466FF',
+  green: '#44BB44',
+  yellow: '#FFB800',
   wild: '#333333'
 };
 

@@ -10,8 +10,19 @@
 
   <!-- Welcome Screen -->
   <div id="welcome-screen" class="screen">
-    <h1 class="game-title">משחק UNO</h1>
-    <button id="start-btn" class="btn btn-primary">!בואו נשחק</button>
+    <div class="welcome-content">
+      <h1 class="game-title">UNO</h1>
+      <p class="welcome-subtitle">משחק הקלפים המוכר והאהוב</p>
+      <div class="player-count-section">
+        <span class="player-count-label">כמה שחקנים?</span>
+        <div class="player-count-buttons">
+          <button class="player-count-btn" data-count="2">2</button>
+          <button class="player-count-btn" data-count="3">3</button>
+          <button class="player-count-btn active" data-count="4">4</button>
+        </div>
+      </div>
+      <button id="start-btn" class="btn btn-primary">!בואו נשחק</button>
+    </div>
   </div>
 
   <!-- Game Table -->

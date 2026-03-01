@@ -1,6 +1,6 @@
 // UI rendering and DOM manipulation
 
-import { HEBREW_NUMBERS, SPECIAL_SYMBOLS, COLOR_HEX, PLAYERS, PLAYER_NAMES, BOT_AVATARS, COLOR_NAMES } from './constants.js';
+import { SPECIAL_SYMBOLS, COLOR_HEX, PLAYER_NAMES, BOT_AVATARS, COLOR_NAMES } from './constants.js';
 import { getTopCard, canPlayCard } from './state.js';
 
 export function showScreen(screenId) {
@@ -65,15 +65,14 @@ export function createCardElement(card, faceUp = true) {
   // Add color class
   el.classList.add('card-' + card.color);
 
-  // Determine display text and corner text
+  // Determine display text and corner text (symbols only, no Hebrew)
   let cornerText;
   let displayText;
 
   if (card.type === 'number') {
     cornerText = String(card.value);
-    displayText = HEBREW_NUMBERS[card.value];
+    displayText = String(card.value);
   } else {
-    // Special card
     cornerText = SPECIAL_SYMBOLS[card.value] || '';
     displayText = SPECIAL_SYMBOLS[card.value] || '';
   }
@@ -109,9 +108,9 @@ export function renderPlayerHand(state, onCardClick) {
   const container = document.getElementById('player-hand');
   clearChildren(container);
 
-  const hand = state.hands[PLAYERS.HUMAN];
+  const hand = state.hands[0];
   const topCard = getTopCard(state);
-  const isMyTurn = state.currentPlayer === PLAYERS.HUMAN;
+  const isMyTurn = state.currentPlayer === 0;
 
   const count = hand.length;
   const maxSpread = 50; // degrees
@@ -145,19 +144,45 @@ export function renderPlayerHand(state, onCardClick) {
 }
 
 /**
+ * Returns the bot-to-position mapping based on number of players.
+ * Maps player indices (1+) to visual positions (left/top/right).
+ */
+function getBotLayout(numPlayers) {
+  if (numPlayers === 2) return [{ index: 1, pos: 'top' }];
+  if (numPlayers === 3) return [{ index: 1, pos: 'left' }, { index: 2, pos: 'right' }];
+  return [{ index: 1, pos: 'left' }, { index: 2, pos: 'top' }, { index: 3, pos: 'right' }];
+}
+
+/**
  * Renders the bot hands (card backs + count badge + name).
+ * Dynamically shows/hides bot areas based on player count.
  * @param {object} state - Game state
  */
 export function renderBotHands(state) {
-  const bots = [
-    { index: PLAYERS.BOT_LEFT, containerId: 'bot-left', handId: 'bot-left-hand' },
-    { index: PLAYERS.BOT_TOP, containerId: 'bot-top', handId: 'bot-top-hand' },
-    { index: PLAYERS.BOT_RIGHT, containerId: 'bot-right', handId: 'bot-right-hand' }
-  ];
+  const numPlayers = state.numPlayers || 4;
+  const layout = getBotLayout(numPlayers);
+  const allPositions = ['left', 'top', 'right'];
 
-  bots.forEach(({ index, containerId, handId }) => {
+  // Determine which positions are active
+  const activePositions = new Set(layout.map(b => b.pos));
+
+  // Hide unused bot areas
+  allPositions.forEach(pos => {
+    const container = document.getElementById('bot-' + pos);
+    if (!container) return;
+    if (activePositions.has(pos)) {
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
+  });
+
+  layout.forEach(({ index, pos }) => {
+    const containerId = 'bot-' + pos;
+    const handId = 'bot-' + pos + '-hand';
     const container = document.getElementById(containerId);
     const handContainer = document.getElementById(handId);
+    if (!container || !handContainer) return;
     clearChildren(handContainer);
 
     // Toggle active-player glow
@@ -170,7 +195,6 @@ export function renderBotHands(state) {
     const cardCount = state.hands[index].length;
     const shown = Math.min(cardCount, 7);
 
-    // Add card backs directly into the hand container (which already has .bot-hand class)
     for (let i = 0; i < shown; i++) {
       const cardBack = document.createElement('div');
       cardBack.classList.add('bot-card-back');
@@ -180,9 +204,7 @@ export function renderBotHands(state) {
 
     // Count badge
     const existingBadge = container.querySelector('.bot-count');
-    if (existingBadge) {
-      existingBadge.remove();
-    }
+    if (existingBadge) existingBadge.remove();
     const badge = document.createElement('span');
     badge.classList.add('bot-count');
     badge.textContent = String(cardCount);
@@ -289,11 +311,11 @@ export function renderGame(state, onCardClick) {
   renderBotHands(state);
   renderCenterArea(state);
 
-  // Toggle UNO button visibility
+  // Toggle UNO button visibility (player is always index 0)
   const unoBtn = document.getElementById('uno-btn');
   if (unoBtn) {
-    const isMyTurn = state.currentPlayer === PLAYERS.HUMAN;
-    const hasTwoCards = state.hands[PLAYERS.HUMAN].length === 2;
+    const isMyTurn = state.currentPlayer === 0;
+    const hasTwoCards = state.hands[0].length === 2;
     if (isMyTurn && hasTwoCards) {
       unoBtn.classList.remove('hidden');
     } else {
@@ -304,7 +326,7 @@ export function renderGame(state, onCardClick) {
   // Toggle active-player on player area
   const playerArea = document.querySelector('.player-area');
   if (playerArea) {
-    if (state.currentPlayer === PLAYERS.HUMAN) {
+    if (state.currentPlayer === 0) {
       playerArea.classList.add('active-player');
     } else {
       playerArea.classList.remove('active-player');

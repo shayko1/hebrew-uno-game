@@ -7,9 +7,9 @@ import { createDeck, shuffle, deal } from './deck.js';
  * - First number card from remaining pile becomes starting discard
  * - Non-number cards encountered are placed back and pile is re-scanned
  */
-export function createGameState() {
+export function createGameState(numPlayers = 4) {
   const deck = shuffle(createDeck());
-  const { hands, remaining } = deal(deck, 4, 7);
+  const { hands, remaining } = deal(deck, numPlayers, 7);
 
   // Find first number card in remaining pile for starting discard
   let startIndex = -1;
@@ -39,6 +39,7 @@ export function createGameState() {
     hands,
     drawPile,
     discardPile,
+    numPlayers,
     currentPlayer: 0,
     direction: 1,
     currentColor: discardPile[0].color,
@@ -96,10 +97,10 @@ export function getPlayableCards(hand, topCard, currentColor) {
 }
 
 /**
- * Calculates the next player index, wrapping around 0-3.
+ * Calculates the next player index, wrapping around 0 to numPlayers-1.
  */
-export function nextPlayerIndex(current, direction) {
-  return ((current + direction) % 4 + 4) % 4;
+export function nextPlayerIndex(current, direction, numPlayers = 4) {
+  return ((current + direction) % numPlayers + numPlayers) % numPlayers;
 }
 
 /**
@@ -177,33 +178,35 @@ export function playCard(state, playerIndex, cardId, chosenColor) {
   }
 
   // Handle special card effects
+  const np = state.numPlayers;
   if (card.type === 'special') {
     switch (card.value) {
       case SPECIAL_TYPES.SKIP:
-        // Skip next player: advance twice
-        state.currentPlayer = nextPlayerIndex(playerIndex, state.direction);
-        state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction);
+        state.currentPlayer = nextPlayerIndex(playerIndex, state.direction, np);
+        state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, np);
         return true;
 
       case SPECIAL_TYPES.REVERSE:
-        // Flip direction
         state.direction *= -1;
-        state.currentPlayer = nextPlayerIndex(playerIndex, state.direction);
+        // In 2-player, reverse acts like skip
+        if (np === 2) {
+          state.currentPlayer = playerIndex;
+        } else {
+          state.currentPlayer = nextPlayerIndex(playerIndex, state.direction, np);
+        }
         return true;
 
       case SPECIAL_TYPES.DRAW_TWO: {
-        // Next player draws 2 and is skipped
-        const nextPlayer = nextPlayerIndex(playerIndex, state.direction);
+        const nextPlayer = nextPlayerIndex(playerIndex, state.direction, np);
         drawCards(state, nextPlayer, 2);
-        state.currentPlayer = nextPlayerIndex(nextPlayer, state.direction);
+        state.currentPlayer = nextPlayerIndex(nextPlayer, state.direction, np);
         return true;
       }
 
       case SPECIAL_TYPES.WILD_DRAW_FOUR: {
-        // Next player draws 4 and is skipped
-        const nextPlayer = nextPlayerIndex(playerIndex, state.direction);
+        const nextPlayer = nextPlayerIndex(playerIndex, state.direction, np);
         drawCards(state, nextPlayer, 4);
-        state.currentPlayer = nextPlayerIndex(nextPlayer, state.direction);
+        state.currentPlayer = nextPlayerIndex(nextPlayer, state.direction, np);
         return true;
       }
 
@@ -213,6 +216,6 @@ export function playCard(state, playerIndex, cardId, chosenColor) {
   }
 
   // Normal card: advance to next player
-  state.currentPlayer = nextPlayerIndex(playerIndex, state.direction);
+  state.currentPlayer = nextPlayerIndex(playerIndex, state.direction, np);
   return true;
 }

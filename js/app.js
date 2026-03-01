@@ -1,4 +1,4 @@
-import { PLAYERS, PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
+import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
 import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
@@ -7,6 +7,7 @@ import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, sound
 
 let state = null;
 let botTurnTimeout = null;
+let selectedPlayerCount = 4;
 
 function init() {
   initAudio();
@@ -17,6 +18,15 @@ function init() {
   document.getElementById('play-again-btn').addEventListener('click', startGame);
   document.getElementById('draw-pile').addEventListener('click', handleDrawPile);
   document.getElementById('uno-btn').addEventListener('click', handleUnoCall);
+
+  // Player count selector
+  document.querySelectorAll('.player-count-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedPlayerCount = parseInt(btn.dataset.count, 10);
+      document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 
   // Color picker buttons
   document.querySelectorAll('.color-btn').forEach(btn => {
@@ -29,12 +39,12 @@ function startGame() {
     clearTimeout(botTurnTimeout);
     botTurnTimeout = null;
   }
-  state = createGameState();
+  state = createGameState(selectedPlayerCount);
   showScreen('game-screen');
   renderGame(state, handleCardClick);
 
   // If first player isn't human, start bot turns
-  if (state.currentPlayer !== PLAYERS.HUMAN) {
+  if (state.currentPlayer !== 0) {
     scheduleBotTurn();
   }
 }
@@ -59,7 +69,7 @@ function playSpecialSound(cardValue) {
 
 function handleCardClick(card) {
   if (!state || state.gameOver) return;
-  if (state.currentPlayer !== PLAYERS.HUMAN) return;
+  if (state.currentPlayer !== 0) return;
   if (state.pendingAction) return;
 
   // Wild card: show color picker first
@@ -69,7 +79,7 @@ function handleCardClick(card) {
     return;
   }
 
-  const success = playCard(state, PLAYERS.HUMAN, card.id);
+  const success = playCard(state, 0, card.id);
   if (!success) return;
 
   // Sound and visual feedback
@@ -82,10 +92,10 @@ function handleCardClick(card) {
   }
 
   // UNO penalty: player has 1 card left but didn't call UNO
-  if (state.hands[PLAYERS.HUMAN].length === 1 && !state.unoCalledBy.has(PLAYERS.HUMAN)) {
-    drawCards(state, PLAYERS.HUMAN, 2);
+  if (state.hands[0].length === 1 && !state.unoCalledBy.has(0)) {
+    drawCards(state, 0, 2);
   }
-  state.unoCalledBy.delete(PLAYERS.HUMAN);
+  state.unoCalledBy.delete(0);
 
   afterPlay();
 }
@@ -97,7 +107,7 @@ function handleColorChoice(color) {
   state.pendingAction = null;
   hideColorPicker();
 
-  playCard(state, PLAYERS.HUMAN, card.id, color);
+  playCard(state, 0, card.id, color);
   soundWild();
   animateCardToDiscard();
 
@@ -106,20 +116,20 @@ function handleColorChoice(color) {
   }
 
   // UNO penalty: player has 1 card left but didn't call UNO
-  if (state.hands[PLAYERS.HUMAN].length === 1 && !state.unoCalledBy.has(PLAYERS.HUMAN)) {
-    drawCards(state, PLAYERS.HUMAN, 2);
+  if (state.hands[0].length === 1 && !state.unoCalledBy.has(0)) {
+    drawCards(state, 0, 2);
   }
-  state.unoCalledBy.delete(PLAYERS.HUMAN);
+  state.unoCalledBy.delete(0);
 
   afterPlay();
 }
 
 function handleDrawPile() {
   if (!state || state.gameOver) return;
-  if (state.currentPlayer !== PLAYERS.HUMAN) return;
+  if (state.currentPlayer !== 0) return;
   if (state.pendingAction) return;
 
-  const drawn = drawCards(state, PLAYERS.HUMAN, 1);
+  const drawn = drawCards(state, 0, 1);
   if (drawn.length === 0) return;
 
   soundCardDraw();
@@ -134,14 +144,14 @@ function handleDrawPile() {
   } else {
     // Not playable — advance turn
     showToast('שלפת קלף ועברת...');
-    state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction);
+    state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
     afterTurnEnd();
   }
 }
 
 function handleUnoCall() {
   if (!state) return;
-  state.unoCalledBy.add(PLAYERS.HUMAN);
+  state.unoCalledBy.add(0);
   soundUno();
   showUnoPopup();
   renderGame(state, handleCardClick);
@@ -155,7 +165,7 @@ function afterPlay() {
 
   renderGame(state, handleCardClick);
 
-  if (state.currentPlayer !== PLAYERS.HUMAN) {
+  if (state.currentPlayer !== 0) {
     scheduleBotTurn();
   } else {
     soundYourTurn();
@@ -170,7 +180,7 @@ function afterTurnEnd() {
 
   renderGame(state, handleCardClick);
 
-  if (state.currentPlayer !== PLAYERS.HUMAN) {
+  if (state.currentPlayer !== 0) {
     scheduleBotTurn();
   } else {
     soundYourTurn();
@@ -192,7 +202,7 @@ function executeBotTurn() {
   const botName = PLAYER_NAMES[botIndex];
 
   // Safety: if it's somehow the human's turn, just re-render
-  if (botIndex === PLAYERS.HUMAN) {
+  if (botIndex === 0) {
     renderGame(state, handleCardClick);
     return;
   }
@@ -259,11 +269,11 @@ function executeBotTurn() {
         }
       } else {
         // Can't play drawn card — advance turn
-        state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction);
+        state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
       }
     } else {
       // Nothing to draw — advance turn
-      state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction);
+      state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
     }
   }
 
@@ -271,13 +281,14 @@ function executeBotTurn() {
 }
 
 function endGame() {
-  if (state.winner === PLAYERS.HUMAN) {
+  if (state.winner === 0) {
     soundWin();
     showEndScreen('כל הכבוד! ניצחת!');
     showConfetti();
   } else {
     soundLose();
-    showEndScreen('!נסה שוב');
+    const winnerName = PLAYER_NAMES[state.winner] || '';
+    showEndScreen(winnerName + ' ניצח! נסה שוב');
   }
 }
 
