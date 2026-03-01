@@ -1,11 +1,11 @@
 export const COLORS = ['red', 'blue', 'green', 'yellow'];
 
 export const COLOR_HEX = {
-  red: '#ef4444',
-  blue: '#3b82f6',
-  green: '#22c55e',
-  yellow: '#facc15',
-  wild: '#333333'
+  red: '#ED1C24',
+  blue: '#0066B3',
+  green: '#1DA31F',
+  yellow: '#F5DF1D',
+  wild: '#1a1a1a'
 };
 
 export const HEBREW_NUMBERS = ['אפס', 'אחד', 'שתיים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע'];
