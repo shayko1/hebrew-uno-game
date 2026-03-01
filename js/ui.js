@@ -53,47 +53,45 @@ export function createCardElement(card, faceUp = true) {
 
   // Face-down card
   if (!faceUp) {
-    el.style.background = 'linear-gradient(135deg, #1a1a2e, #16213e)';
-    el.style.border = '2px solid #e94560';
-    el.style.color = '#e94560';
-    el.style.fontSize = '16px';
-    el.style.fontWeight = 'bold';
-    el.textContent = 'UNO';
+    el.classList.add('card-back');
+    const backOval = document.createElement('div');
+    backOval.classList.add('card-back-oval');
+    backOval.textContent = 'UNO';
+    el.appendChild(backOval);
     return el;
   }
 
   // Add color class
   el.classList.add('card-' + card.color);
 
-  // Determine display text and corner text (symbols only, no Hebrew)
-  let cornerText;
-  let displayText;
-
+  // Determine the display value (symbols only, no Hebrew)
+  let symbol;
   if (card.type === 'number') {
-    cornerText = String(card.value);
-    displayText = String(card.value);
+    symbol = String(card.value);
   } else {
-    cornerText = SPECIAL_SYMBOLS[card.value] || '';
-    displayText = SPECIAL_SYMBOLS[card.value] || '';
+    symbol = SPECIAL_SYMBOLS[card.value] || '';
   }
 
-  // Top corner
+  // Top-left corner
   const cornerTop = document.createElement('span');
   cornerTop.classList.add('card-corner', 'card-corner-top');
-  cornerTop.textContent = cornerText;
+  cornerTop.textContent = symbol;
 
-  // Inner oval
-  const inner = document.createElement('span');
-  inner.classList.add('card-inner');
-  inner.textContent = displayText;
+  // Tilted white oval with large centered symbol
+  const oval = document.createElement('div');
+  oval.classList.add('card-oval');
+  const value = document.createElement('span');
+  value.classList.add('card-value');
+  value.textContent = symbol;
+  oval.appendChild(value);
 
-  // Bottom corner
+  // Bottom-right corner (upside-down)
   const cornerBottom = document.createElement('span');
   cornerBottom.classList.add('card-corner', 'card-corner-bottom');
-  cornerBottom.textContent = cornerText;
+  cornerBottom.textContent = symbol;
 
   el.appendChild(cornerTop);
-  el.appendChild(inner);
+  el.appendChild(oval);
   el.appendChild(cornerBottom);
 
   return el;
@@ -293,7 +291,7 @@ export function renderCenterArea(state) {
   // Turn message
   const turnMessage = document.getElementById('turn-message');
   if (turnMessage) {
-    if (state.currentPlayer === PLAYERS.HUMAN) {
+    if (state.currentPlayer === 0) {
       turnMessage.textContent = '\u0021\u05EA\u05D5\u05E8\u05DA';
     } else {
       turnMessage.textContent = '';
