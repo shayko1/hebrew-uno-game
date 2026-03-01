@@ -109,32 +109,40 @@ export function renderPlayerHand(state, onCardClick) {
   const hand = state.hands[0];
   const topCard = getTopCard(state);
   const isMyTurn = state.currentPlayer === 0;
-
   const count = hand.length;
-  const maxSpread = 50; // degrees
-  const spread = Math.min(maxSpread, count * 6);
-  const startAngle = -spread / 2;
-  const angleStep = count > 1 ? spread / (count - 1) : 0;
+
+  // Card width depends on screen size
+  const isMobile = window.innerWidth < 600;
+  const cardW = isMobile ? 68 : 88;
+
+  // Calculate overlap: always show at least 30px of each card
+  const minVisible = isMobile ? 26 : 34;
+  const maxVisible = cardW * 0.65;
+  const availableW = window.innerWidth * 0.94;
+
+  let visiblePerCard;
+  if (count <= 1) {
+    visiblePerCard = cardW;
+  } else {
+    visiblePerCard = Math.min(maxVisible, Math.max(minVisible, (availableW - cardW) / (count - 1)));
+  }
+  const overlap = cardW - visiblePerCard;
 
   hand.forEach((card, i) => {
     const el = createCardElement(card, true);
-    const playable = isMyTurn && canPlayCard(card, topCard, state.currentColor);
+    el.classList.add('hand-card');
 
+    const playable = isMyTurn && canPlayCard(card, topCard, state.currentColor);
     if (playable) {
       el.classList.add('playable');
-      el.classList.remove('not-playable');
       el.addEventListener('click', () => onCardClick(card));
     } else {
       el.classList.add('not-playable');
-      el.classList.remove('playable');
     }
 
-    const angle = startAngle + angleStep * i;
-    const cardSpacing = Math.min(30, (window.innerWidth * 0.5) / Math.max(count, 1));
-    const offset = (i - (count - 1) / 2) * cardSpacing;
-
-    el.style.left = 'calc(50% + ' + offset + 'px - 50px)';
-    el.style.transform = 'rotate(' + angle + 'deg)';
+    if (i > 0) {
+      el.style.marginLeft = -overlap + 'px';
+    }
     el.style.zIndex = i;
 
     container.appendChild(el);
