@@ -34,6 +34,31 @@ html, body {
   justify-content: center;
   align-items: center;
   gap: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.floating-card {
+  position: absolute;
+  width: 60px;
+  height: 90px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 2px solid #e94560;
+  border-radius: 8px;
+  opacity: 0.2;
+  animation: floatCard ease-in-out infinite;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #e94560;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
 }
 
 .game-title {
@@ -125,11 +150,21 @@ html, body {
   font-weight: bold;
 }
 
+.bot-left .bot-hand,
+.bot-right .bot-hand {
+  flex-direction: column;
+}
+
 .bot-left .bot-card-back,
 .bot-right .bot-card-back {
   width: 40px;
   height: 60px;
   font-size: 8px;
+  margin: -8px 0;
+}
+
+.bot-top .bot-card-back {
+  margin: 0 -8px;
 }
 
 .bot-count {
@@ -561,10 +596,14 @@ html, body {
 
 /* ===== Current Color Indicator ===== */
 .current-color-indicator {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 30px;
   height: 30px;
   border-radius: 50%;
   border: 3px solid white;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  margin-top: 8px;
+  z-index: 10;
 }

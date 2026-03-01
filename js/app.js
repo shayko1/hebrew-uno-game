@@ -1,6 +1,6 @@
 import { PLAYERS } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
-import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen } from './ui.js';
+import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti } from './animations.js';
 
@@ -8,6 +8,7 @@ let state = null;
 
 function init() {
   showScreen('welcome-screen');
+  renderWelcomeDecorations();
 
   document.getElementById('start-btn').addEventListener('click', startGame);
   document.getElementById('play-again-btn').addEventListener('click', startGame);

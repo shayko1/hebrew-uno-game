@@ -115,7 +115,8 @@ export function renderPlayerHand(state, onCardClick) {
     }
 
     const angle = startAngle + angleStep * i;
-    const offset = (i - (count - 1) / 2) * 30;
+    const cardSpacing = Math.min(30, (window.innerWidth * 0.5) / Math.max(count, 1));
+    const offset = (i - (count - 1) / 2) * cardSpacing;
 
     el.style.left = 'calc(50% + ' + offset + 'px - 50px)';
     el.style.transform = 'rotate(' + angle + 'deg)';
@@ -151,18 +152,13 @@ export function renderBotHands(state) {
     const cardCount = state.hands[index].length;
     const shown = Math.min(cardCount, 7);
 
-    // Bot hand div with card backs
-    const botHand = document.createElement('div');
-    botHand.classList.add('bot-hand');
-
+    // Add card backs directly into the hand container (which already has .bot-hand class)
     for (let i = 0; i < shown; i++) {
       const cardBack = document.createElement('div');
       cardBack.classList.add('bot-card-back');
       cardBack.textContent = 'UNO';
-      botHand.appendChild(cardBack);
+      handContainer.appendChild(cardBack);
     }
-
-    handContainer.appendChild(botHand);
 
     // Count badge
     const existingBadge = container.querySelector('.bot-count');
@@ -198,7 +194,7 @@ export function renderCenterArea(state) {
   discardPile.appendChild(cardEl);
 
   // If wild card, show current color indicator
-  const existingIndicator = discardPile.parentElement.querySelector('.current-color-indicator');
+  const existingIndicator = discardPile.querySelector('.current-color-indicator');
   if (existingIndicator) {
     existingIndicator.remove();
   }
@@ -207,8 +203,8 @@ export function renderCenterArea(state) {
     const indicator = document.createElement('div');
     indicator.classList.add('current-color-indicator');
     indicator.style.background = COLOR_HEX[state.currentColor];
-    // Place it after the discard pile element
-    discardPile.parentElement.appendChild(indicator);
+    // Place it inside the discard pile (which has position: relative)
+    discardPile.appendChild(indicator);
   }
 
   // Direction indicator
@@ -288,6 +284,26 @@ export function hideColorPicker() {
   const picker = document.getElementById('color-picker');
   if (picker) {
     picker.classList.add('hidden');
+  }
+}
+
+/**
+ * Adds floating card-back decorations to the welcome screen.
+ */
+export function renderWelcomeDecorations() {
+  const welcomeScreen = document.getElementById('welcome-screen');
+  if (!welcomeScreen) return;
+
+  const count = 7;
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement('div');
+    card.classList.add('floating-card');
+    card.textContent = 'UNO';
+    card.style.top = (10 + Math.random() * 70) + '%';
+    card.style.left = (5 + Math.random() * 85) + '%';
+    card.style.animationDelay = (Math.random() * 5) + 's';
+    card.style.animationDuration = (4 + Math.random() * 4) + 's';
+    welcomeScreen.appendChild(card);
   }
 }
 
