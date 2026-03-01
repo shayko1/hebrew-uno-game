@@ -79,8 +79,9 @@ export function canPlayCard(card, topCard, currentColor) {
     return true;
   }
 
-  // Match by special type (special-to-special with same value)
-  if (card.type === 'special' && topCard.type === 'special' && card.value === topCard.value) {
+  // Match by special type (special-to-special with same value, excludes wilds which are handled above)
+  if (card.type === 'special' && topCard.type === 'special' &&
+      card.value === topCard.value && card.color !== 'wild') {
     return true;
   }
 

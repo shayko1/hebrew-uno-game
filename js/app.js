@@ -5,6 +5,7 @@ import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti } from './animations.js';
 
 let state = null;
+let botTurnTimeout = null;
 
 function init() {
   showScreen('welcome-screen');
@@ -22,6 +23,10 @@ function init() {
 }
 
 function startGame() {
+  if (botTurnTimeout !== null) {
+    clearTimeout(botTurnTimeout);
+    botTurnTimeout = null;
+  }
   state = createGameState();
   showScreen('game-screen');
   renderGame(state, handleCardClick);
@@ -131,7 +136,10 @@ function afterTurnEnd() {
 
 function scheduleBotTurn() {
   const delay = 800 + Math.random() * 700;
-  setTimeout(() => executeBotTurn(), delay);
+  botTurnTimeout = setTimeout(() => {
+    botTurnTimeout = null;
+    executeBotTurn();
+  }, delay);
 }
 
 function executeBotTurn() {
