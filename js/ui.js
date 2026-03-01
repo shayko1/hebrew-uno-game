@@ -1,5 +1,8 @@
 // UI rendering and DOM manipulation
 
+import { HEBREW_NUMBERS, SPECIAL_SYMBOLS, COLOR_HEX, PLAYERS, PLAYER_NAMES } from './constants.js';
+import { getTopCard, canPlayCard } from './state.js';
+
 export function showScreen(screenId) {
   document.querySelectorAll('.screen').forEach(screen => {
     screen.classList.add('hidden');
@@ -10,34 +13,288 @@ export function showScreen(screenId) {
   }
 }
 
-export function renderHand(hand, containerId) {
-  // TODO: implement
+/**
+ * Removes all child nodes from an element.
+ */
+function clearChildren(el) {
+  while (el.firstChild) {
+    el.removeChild(el.firstChild);
+  }
 }
 
-export function renderBotHand(cardCount, containerId) {
-  // TODO: implement
+/**
+ * Creates a DOM element for a card.
+ * @param {object} card - Card object with id, color, type, value
+ * @param {boolean} faceUp - Whether card is face-up (default true)
+ * @returns {HTMLElement} The card element
+ */
+export function createCardElement(card, faceUp = true) {
+  const el = document.createElement('div');
+  el.classList.add('card');
+  el.dataset.cardId = card.id;
+
+  // Face-down card
+  if (!faceUp) {
+    el.style.background = 'linear-gradient(135deg, #1a1a2e, #16213e)';
+    el.style.border = '2px solid #e94560';
+    el.style.color = '#e94560';
+    el.style.fontSize = '16px';
+    el.style.fontWeight = 'bold';
+    el.textContent = 'UNO';
+    return el;
+  }
+
+  // Add color class
+  el.classList.add('card-' + card.color);
+
+  // Determine display text and corner text
+  let cornerText;
+  let displayText;
+
+  if (card.type === 'number') {
+    cornerText = String(card.value);
+    displayText = HEBREW_NUMBERS[card.value];
+  } else {
+    // Special card
+    cornerText = SPECIAL_SYMBOLS[card.value] || '';
+    displayText = SPECIAL_SYMBOLS[card.value] || '';
+  }
+
+  // Top corner
+  const cornerTop = document.createElement('span');
+  cornerTop.classList.add('card-corner', 'card-corner-top');
+  cornerTop.textContent = cornerText;
+
+  // Inner oval
+  const inner = document.createElement('span');
+  inner.classList.add('card-inner');
+  inner.textContent = displayText;
+
+  // Bottom corner
+  const cornerBottom = document.createElement('span');
+  cornerBottom.classList.add('card-corner', 'card-corner-bottom');
+  cornerBottom.textContent = cornerText;
+
+  el.appendChild(cornerTop);
+  el.appendChild(inner);
+  el.appendChild(cornerBottom);
+
+  return el;
 }
 
-export function renderDiscardPile(card) {
-  // TODO: implement
+/**
+ * Renders the human player's hand as a fan of cards.
+ * @param {object} state - Game state
+ * @param {function} onCardClick - Callback when a card is clicked
+ */
+export function renderPlayerHand(state, onCardClick) {
+  const container = document.getElementById('player-hand');
+  clearChildren(container);
+
+  const hand = state.hands[PLAYERS.HUMAN];
+  const topCard = getTopCard(state);
+  const isMyTurn = state.currentPlayer === PLAYERS.HUMAN;
+
+  const count = hand.length;
+  const maxSpread = 50; // degrees
+  const spread = Math.min(maxSpread, count * 6);
+  const startAngle = -spread / 2;
+  const angleStep = count > 1 ? spread / (count - 1) : 0;
+
+  hand.forEach((card, i) => {
+    const el = createCardElement(card, true);
+    const playable = isMyTurn && canPlayCard(card, topCard, state.currentColor);
+
+    if (playable) {
+      el.classList.add('playable');
+      el.classList.remove('not-playable');
+      el.addEventListener('click', () => onCardClick(card));
+    } else {
+      el.classList.add('not-playable');
+      el.classList.remove('playable');
+    }
+
+    const angle = startAngle + angleStep * i;
+    const offset = (i - (count - 1) / 2) * 30;
+
+    el.style.left = 'calc(50% + ' + offset + 'px - 50px)';
+    el.style.transform = 'rotate(' + angle + 'deg)';
+    el.style.zIndex = i;
+
+    container.appendChild(el);
+  });
 }
 
-export function updateTurnMessage(message) {
-  // TODO: implement
+/**
+ * Renders the bot hands (card backs + count badge + name).
+ * @param {object} state - Game state
+ */
+export function renderBotHands(state) {
+  const bots = [
+    { index: PLAYERS.BOT_LEFT, containerId: 'bot-left', handId: 'bot-left-hand' },
+    { index: PLAYERS.BOT_TOP, containerId: 'bot-top', handId: 'bot-top-hand' },
+    { index: PLAYERS.BOT_RIGHT, containerId: 'bot-right', handId: 'bot-right-hand' }
+  ];
+
+  bots.forEach(({ index, containerId, handId }) => {
+    const container = document.getElementById(containerId);
+    const handContainer = document.getElementById(handId);
+    clearChildren(handContainer);
+
+    // Toggle active-player glow
+    if (state.currentPlayer === index) {
+      container.classList.add('active-player');
+    } else {
+      container.classList.remove('active-player');
+    }
+
+    const cardCount = state.hands[index].length;
+    const shown = Math.min(cardCount, 7);
+
+    // Bot hand div with card backs
+    const botHand = document.createElement('div');
+    botHand.classList.add('bot-hand');
+
+    for (let i = 0; i < shown; i++) {
+      const cardBack = document.createElement('div');
+      cardBack.classList.add('bot-card-back');
+      cardBack.textContent = 'UNO';
+      botHand.appendChild(cardBack);
+    }
+
+    handContainer.appendChild(botHand);
+
+    // Count badge
+    const existingBadge = container.querySelector('.bot-count');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+    const badge = document.createElement('span');
+    badge.classList.add('bot-count');
+    badge.textContent = String(cardCount);
+    container.appendChild(badge);
+
+    // Name label
+    const existingName = container.querySelector('.bot-name');
+    if (existingName) {
+      existingName.textContent = PLAYER_NAMES[index];
+    }
+  });
 }
 
-export function updateDirectionIndicator(direction) {
-  // TODO: implement
+/**
+ * Renders the center area: discard pile top card, direction indicator, turn message.
+ * @param {object} state - Game state
+ */
+export function renderCenterArea(state) {
+  const discardPile = document.getElementById('discard-pile');
+  clearChildren(discardPile);
+
+  const topCard = getTopCard(state);
+
+  // Render the top card (non-interactive)
+  const cardEl = createCardElement(topCard, true);
+  cardEl.style.cursor = 'default';
+  discardPile.appendChild(cardEl);
+
+  // If wild card, show current color indicator
+  const existingIndicator = discardPile.parentElement.querySelector('.current-color-indicator');
+  if (existingIndicator) {
+    existingIndicator.remove();
+  }
+
+  if (topCard.color === 'wild') {
+    const indicator = document.createElement('div');
+    indicator.classList.add('current-color-indicator');
+    indicator.style.background = COLOR_HEX[state.currentColor];
+    // Place it after the discard pile element
+    discardPile.parentElement.appendChild(indicator);
+  }
+
+  // Direction indicator
+  const dirIndicator = document.getElementById('direction-indicator');
+  if (dirIndicator) {
+    dirIndicator.textContent = state.direction === 1 ? '\u21BB' : '\u21BA';
+  }
+
+  // Turn message
+  const turnMessage = document.getElementById('turn-message');
+  if (turnMessage) {
+    if (state.currentPlayer === PLAYERS.HUMAN) {
+      turnMessage.textContent = '\u0021\u05EA\u05D5\u05E8\u05DA';
+    } else {
+      turnMessage.textContent = '';
+    }
+  }
+}
+
+/**
+ * Renders the full game: all hands, center area, UNO button, active-player.
+ * @param {object} state - Game state
+ * @param {function} onCardClick - Callback when a player card is clicked
+ */
+export function renderGame(state, onCardClick) {
+  renderPlayerHand(state, onCardClick);
+  renderBotHands(state);
+  renderCenterArea(state);
+
+  // Toggle UNO button visibility
+  const unoBtn = document.getElementById('uno-btn');
+  if (unoBtn) {
+    const isMyTurn = state.currentPlayer === PLAYERS.HUMAN;
+    const hasTwoCards = state.hands[PLAYERS.HUMAN].length === 2;
+    if (isMyTurn && hasTwoCards) {
+      unoBtn.classList.remove('hidden');
+    } else {
+      unoBtn.classList.add('hidden');
+    }
+  }
+
+  // Toggle active-player on player area
+  const playerArea = document.querySelector('.player-area');
+  if (playerArea) {
+    if (state.currentPlayer === PLAYERS.HUMAN) {
+      playerArea.classList.add('active-player');
+    } else {
+      playerArea.classList.remove('active-player');
+    }
+  }
+}
+
+/**
+ * Shows a temporary UNO popup in the center of the screen.
+ */
+export function showUnoPopup() {
+  const popup = document.createElement('div');
+  popup.classList.add('uno-popup');
+  popup.textContent = 'UNO!';
+  document.body.appendChild(popup);
+
+  setTimeout(() => {
+    if (popup.parentNode) {
+      popup.parentNode.removeChild(popup);
+    }
+  }, 1000);
 }
 
 export function showColorPicker() {
-  // TODO: implement
+  const picker = document.getElementById('color-picker');
+  if (picker) {
+    picker.classList.remove('hidden');
+  }
 }
 
 export function hideColorPicker() {
-  // TODO: implement
+  const picker = document.getElementById('color-picker');
+  if (picker) {
+    picker.classList.add('hidden');
+  }
 }
 
 export function showEndScreen(message) {
-  // TODO: implement
+  const endMsg = document.getElementById('end-message');
+  if (endMsg) {
+    endMsg.textContent = message;
+  }
+  showScreen('end-screen');
 }
