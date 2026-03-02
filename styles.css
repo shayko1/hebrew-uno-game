@@ -6,10 +6,12 @@ html, body {
   height: 100%;
   overflow: hidden;
   direction: rtl;
-  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   background: #000;
+  /* Safe area for iPhone notch / Dynamic Island */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .screen {
