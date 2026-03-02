@@ -12,7 +12,8 @@ const ASSETS = [
   '/hebrew-uno-game/js/pwa.js',
   '/hebrew-uno-game/js/sounds.js',
   '/hebrew-uno-game/js/state.js',
-  '/hebrew-uno-game/js/ui.js'
+  '/hebrew-uno-game/js/ui.js',
+  '/hebrew-uno-game/js/stats.js'
 ];
 
 self.addEventListener('install', event => {

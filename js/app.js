@@ -5,10 +5,12 @@ import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti, showActionFeedback, animateCardToDiscard } from './animations.js';
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
+import { recordGame, renderStatsOverlay } from './stats.js';
 
 let state = null;
 let botTurnTimeout = null;
 let selectedPlayerCount = 4;
+let turnCount = 0;
 
 function init() {
   initAudio();
@@ -21,6 +23,7 @@ function init() {
   document.getElementById('restart-btn').addEventListener('click', handleRestart);
   document.getElementById('draw-pile').addEventListener('click', handleDrawPile);
   document.getElementById('uno-btn').addEventListener('click', handleUnoCall);
+  document.getElementById('stats-btn').addEventListener('click', () => renderStatsOverlay());
 
   // Player count selector
   document.querySelectorAll('.player-count-btn').forEach(btn => {
@@ -56,6 +59,7 @@ function startGame() {
     botTurnTimeout = null;
   }
   state = createGameState(selectedPlayerCount);
+  turnCount = 0;
   showScreen('game-screen');
   renderGame(state, handleCardClick);
 
@@ -189,6 +193,7 @@ function afterPlay() {
 }
 
 function afterTurnEnd() {
+  turnCount++;
   if (state.gameOver) {
     endGame();
     return;
@@ -297,6 +302,7 @@ function executeBotTurn() {
 }
 
 function endGame() {
+  recordGame(state.winner === 0, state.numPlayers, turnCount);
   if (state.winner === 0) {
     soundWin();
     showEndScreen('כל הכבוד! ניצחת!');

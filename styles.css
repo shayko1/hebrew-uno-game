@@ -924,6 +924,99 @@ html, body {
   .card-corner { font-size: 9px; }
 }
 
+/* ===== Stats ===== */
+.btn-stats {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.2s;
+}
+
+.btn-stats:hover { background: rgba(255,255,255,0.15); }
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px;
+  background: rgba(20,20,20,0.95);
+  border-radius: 20px;
+  border: 1px solid rgba(255,215,0,0.2);
+  max-width: 340px;
+  width: 90%;
+}
+
+.stats-content h2 {
+  color: #FFD700;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  color: white;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.stat-label {
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stats-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-stats-close {
+  background: #ED1C24;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-stats-reset {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.5);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-stats-reset:hover {
+  border-color: rgba(248,113,113,0.5);
+  color: #f87171;
+}
+
 /* ===== PWA Banners ===== */
 .install-banner, .update-banner {
   position: fixed;
