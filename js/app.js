@@ -33,6 +33,13 @@ function init() {
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => handleColorChoice(btn.dataset.color));
   });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state && state.pendingAction && state.pendingAction.type === 'colorPick') {
+      state.pendingAction = null;
+      hideColorPicker();
+    }
+  });
 }
 
 function handleRestart() {

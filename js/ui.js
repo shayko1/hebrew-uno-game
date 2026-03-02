@@ -138,7 +138,22 @@ export function renderPlayerHand(state, onCardClick) {
       el.addEventListener('click', () => onCardClick(card));
     } else {
       el.classList.add('not-playable');
+      el.setAttribute('aria-disabled', 'true');
     }
+
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'button');
+      const colorName = card.color === 'wild' ? 'ג\'וקר' :
+        ({ red: 'אדום', blue: 'כחול', green: 'ירוק', yellow: 'צהוב' }[card.color] || card.color);
+      const valueName = card.type === 'number' ? String(card.value) :
+        ({ skip: 'דילוג', reverse: 'הפוך', draw_two: 'פלוס 2', wild: 'ג\'וקר', wild_draw_four: 'פלוס 4' }[card.value] || '');
+      el.setAttribute('aria-label', colorName + ' ' + valueName);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onCardClick(card);
+        }
+      });
 
     if (i > 0) {
       el.style.marginLeft = -overlap + 'px';
