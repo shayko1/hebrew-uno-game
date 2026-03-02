@@ -27,12 +27,12 @@
       <div class="player-count-section">
         <span class="player-count-label">כמה שחקנים?</span>
         <div class="player-count-buttons">
-          <button class="player-count-btn" data-count="2">2</button>
-          <button class="player-count-btn" data-count="3">3</button>
-          <button class="player-count-btn active" data-count="4">4</button>
+          <button class="player-count-btn" data-count="2" aria-label="2 שחקנים">2</button>
+          <button class="player-count-btn" data-count="3" aria-label="3 שחקנים">3</button>
+          <button class="player-count-btn active" data-count="4" aria-label="4 שחקנים">4</button>
         </div>
       </div>
-      <button id="start-btn" class="btn btn-primary">!בואו נשחק</button>
+      <button id="start-btn" class="btn btn-primary" aria-label="התחל משחק">!בואו נשחק</button>
     </div>
   </div>
 
@@ -54,7 +54,7 @@
 
       <!-- Center Area -->
       <div class="center-area">
-        <div class="draw-pile" id="draw-pile">
+        <div class="draw-pile" id="draw-pile" role="button" aria-label="שלוף קלף">
           <div class="card card-back">UNO</div>
         </div>
         <div class="discard-pile" id="discard-pile"></div>
@@ -69,26 +69,27 @@
       </div>
 
       <!-- Restart Button -->
-      <button id="restart-btn" class="btn-restart" title="משחק חדש">&#x21BB;</button>
+      <button id="restart-btn" class="btn-restart" title="משחק חדש" aria-label="משחק חדש">&#x21BB;</button>
 
       <!-- Player Area -->
       <div class="player-area">
         <div class="player-hand" id="player-hand"></div>
-        <button id="uno-btn" class="btn btn-uno hidden">!UNO</button>
+        <button id="uno-btn" class="btn btn-uno hidden" aria-label="קרא אונו">!UNO</button>
       </div>
 
+      <div id="game-announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     </div>
   </div>
 
   <!-- Color Picker Overlay -->
-  <div id="color-picker" class="overlay hidden">
+  <div id="color-picker" class="overlay hidden" role="dialog" aria-label="בחר צבע">
     <div class="color-picker-content">
       <h2>?בחר צבע</h2>
       <div class="color-buttons">
-        <button class="color-btn color-red" data-color="red"></button>
-        <button class="color-btn color-blue" data-color="blue"></button>
-        <button class="color-btn color-green" data-color="green"></button>
-        <button class="color-btn color-yellow" data-color="yellow"></button>
+        <button class="color-btn color-red" data-color="red" aria-label="אדום"></button>
+        <button class="color-btn color-blue" data-color="blue" aria-label="כחול"></button>
+        <button class="color-btn color-green" data-color="green" aria-label="ירוק"></button>
+        <button class="color-btn color-yellow" data-color="yellow" aria-label="צהוב"></button>
       </div>
     </div>
   </div>
@@ -97,7 +98,7 @@
   <div id="end-screen" class="screen hidden">
     <div id="confetti-container"></div>
     <div class="end-message" id="end-message"></div>
-    <button id="play-again-btn" class="btn btn-primary">שחק שוב</button>
+    <button id="play-again-btn" class="btn btn-primary" aria-label="שחק שוב">שחק שוב</button>
   </div>
 
   <script type="module" src="js/app.js"></script>
