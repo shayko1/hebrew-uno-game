@@ -1,16 +1,28 @@
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx = null;
+let audioEnabled = true;
+
+try {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+} catch (e) {
+  audioEnabled = false;
+}
 
 function playTone(freq, duration, type = 'sine', volume = 0.3) {
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.value = volume;
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
+  if (!audioEnabled || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = volume;
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) {
+    // Silently ignore audio errors
+  }
 }
 
 export function soundCardPlay() {
@@ -79,6 +91,8 @@ export function soundYourTurn() {
 // Resume audio context on first user interaction (browser policy)
 export function initAudio() {
   document.addEventListener('click', () => {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
   }, { once: true });
 }
