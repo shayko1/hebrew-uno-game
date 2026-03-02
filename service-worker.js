@@ -1,9 +1,12 @@
-const CACHE_NAME = 'tsivoni-v1';
+const CACHE_NAME = 'tsivoni-v2';
 const ASSETS = [
   '/hebrew-uno-game/',
   '/hebrew-uno-game/index.html',
   '/hebrew-uno-game/styles.css',
   '/hebrew-uno-game/manifest.json',
+  '/hebrew-uno-game/icons/icon-180.png',
+  '/hebrew-uno-game/icons/icon-192.png',
+  '/hebrew-uno-game/icons/icon-512.png',
   '/hebrew-uno-game/js/app.js',
   '/hebrew-uno-game/js/animations.js',
   '/hebrew-uno-game/js/bot.js',

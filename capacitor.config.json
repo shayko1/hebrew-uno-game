@@ -1,0 +1,15 @@
+{
+  "appId": "com.tsivoni.game",
+  "appName": "צבעוני!",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0a0a0a"
+  },
+  "android": {
+    "backgroundColor": "#0a0a0a"
+  }
+}

@@ -343,8 +343,8 @@ export function renderCenterArea(state) {
   const turnMessage = document.getElementById('turn-message');
   if (turnMessage) {
     if (state.currentPlayer === 0) {
-      turnMessage.textContent = '\u0021\u05EA\u05D5\u05E8\u05DA';
-      announce('!התור שלך');
+      turnMessage.textContent = 'תורך!';
+      announce('תורך!');
     } else {
       turnMessage.textContent = '';
     }
@@ -394,7 +394,7 @@ export function renderGame(state, onCardClick) {
 export function showLastCardPopup() {
   const popup = document.createElement('div');
   popup.classList.add('last-card-popup');
-  popup.textContent = '!אחרון';
+  popup.textContent = 'אחרון!';
   document.body.appendChild(popup);
 
   setTimeout(() => {

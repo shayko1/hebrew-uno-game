@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="200" fill="url(#bg)"/>
+
+  <!-- Four colored cards fanned out -->
+  <!-- Red card (back-left) -->
+  <g transform="translate(512,520) rotate(-25)" filter="url(#shadow)">
+    <rect x="-110" y="-160" width="220" height="320" rx="18" fill="#ED1C24"/>
+    <rect x="-90" y="-140" width="180" height="280" rx="12" fill="none" stroke="white" stroke-width="3" opacity="0.3"/>
+  </g>
+
+  <!-- Blue card (back-right) -->
+  <g transform="translate(512,520) rotate(25)" filter="url(#shadow)">
+    <rect x="-110" y="-160" width="220" height="320" rx="18" fill="#0066B3"/>
+    <rect x="-90" y="-140" width="180" height="280" rx="12" fill="none" stroke="white" stroke-width="3" opacity="0.3"/>
+  </g>
+
+  <!-- Green card (front-left) -->
+  <g transform="translate(512,510) rotate(-8)" filter="url(#shadow)">
+    <rect x="-110" y="-160" width="220" height="320" rx="18" fill="#1DA31F"/>
+    <rect x="-90" y="-140" width="180" height="280" rx="12" fill="none" stroke="white" stroke-width="3" opacity="0.3"/>
+    <ellipse cx="0" cy="0" rx="60" ry="80" fill="white" opacity="0.15" transform="rotate(-10)"/>
+  </g>
+
+  <!-- Yellow card (front-right, on top) -->
+  <g transform="translate(512,510) rotate(8)" filter="url(#shadow)">
+    <rect x="-110" y="-160" width="220" height="320" rx="18" fill="#F5DF1D"/>
+    <rect x="-90" y="-140" width="180" height="280" rx="12" fill="none" stroke="white" stroke-width="3" opacity="0.3"/>
+    <ellipse cx="0" cy="0" rx="60" ry="80" fill="white" opacity="0.2" transform="rotate(10)"/>
+  </g>
+
+  <!-- Center white oval badge -->
+  <ellipse cx="512" cy="510" rx="95" ry="65" fill="white" filter="url(#shadow)"/>
+
+  <!-- Hebrew text "צ" in center -->
+  <text x="512" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="90" font-weight="bold" fill="#1a1a2e">צ</text>
+
+  <!-- Small sparkle dots for polish -->
+  <circle cx="280" cy="200" r="6" fill="white" opacity="0.4"/>
+  <circle cx="750" cy="180" r="4" fill="white" opacity="0.3"/>
+  <circle cx="200" cy="750" r="5" fill="white" opacity="0.35"/>
+  <circle cx="800" cy="700" r="7" fill="white" opacity="0.3"/>
+</svg>
