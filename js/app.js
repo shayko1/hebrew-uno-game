@@ -2,7 +2,7 @@ import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
 import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
-import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard } from './animations.js';
+import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard, flyFlipCard } from './animations.js';
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
 import { recordGame, renderStatsOverlay } from './stats.js';
@@ -160,7 +160,7 @@ async function handleColorChoice(color) {
   afterPlay();
 }
 
-function handleDrawPile() {
+async function handleDrawPile() {
   if (!state || state.gameOver) return;
   if (state.currentPlayer !== 0) return;
   if (state.pendingAction) return;
@@ -169,9 +169,16 @@ function handleDrawPile() {
   const drawn = drawCards(state, 0, 1);
   if (drawn.length === 0) return;
 
+  animating = true;
   soundCardDraw();
 
+  const drawPileEl = document.getElementById('draw-pile');
+  const handEl = document.getElementById('player-hand');
   const drawnCard = drawn[0];
+
+  await flyFlipCard(drawPileEl, handEl, drawnCard);
+  animating = false;
+
   const topCard = getTopCard(state);
   const playable = getPlayableCards([drawnCard], topCard, state.currentColor);
 
