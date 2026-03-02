@@ -40,7 +40,7 @@ export function flyCard(sourceEl, targetEl, opts = {}) {
   if (prefersReducedMotion()) return Promise.resolve();
 
   const layer = getLayer();
-  if (!layer) return Promise.resolve();
+  if (!layer || !sourceEl || !targetEl) return Promise.resolve();
 
   const duration = opts.duration ?? 300;
   const rotation = opts.rotation ?? ((Math.random() - 0.5) * 30);
@@ -114,7 +114,7 @@ export function flyFlipCard(sourceEl, targetEl, card, opts = {}) {
   if (prefersReducedMotion()) return Promise.resolve();
 
   const layer = getLayer();
-  if (!layer) return Promise.resolve();
+  if (!layer || !sourceEl || !targetEl) return Promise.resolve();
 
   const duration = opts.duration ?? 350;
 
@@ -179,6 +179,7 @@ export function flyFlipCard(sourceEl, targetEl, card, opts = {}) {
   const dy = tgtCenter.y - srcCenter.y;
 
   return new Promise((resolve) => {
+    let flipTimeout;
     const safetyTimeout = setTimeout(() => {
       cleanup();
       resolve();
@@ -186,6 +187,7 @@ export function flyFlipCard(sourceEl, targetEl, card, opts = {}) {
 
     function cleanup() {
       clearTimeout(safetyTimeout);
+      clearTimeout(flipTimeout);
       if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
     }
 
@@ -203,7 +205,7 @@ export function flyFlipCard(sourceEl, targetEl, card, opts = {}) {
       requestAnimationFrame(() => {
         wrapper.style.transform = `translate(${dx}px, ${dy}px)`;
         // Flip at mid-flight
-        setTimeout(() => {
+        flipTimeout = setTimeout(() => {
           inner.classList.add('flipped');
           inner.style.transform = 'rotateY(180deg)';
         }, duration / 2);
@@ -224,7 +226,7 @@ export function flyCardBack(sourceEl, targetEl, opts = {}) {
   if (prefersReducedMotion()) return Promise.resolve();
 
   const layer = getLayer();
-  if (!layer) return Promise.resolve();
+  if (!layer || !sourceEl || !targetEl) return Promise.resolve();
 
   const duration = opts.duration ?? 250;
 

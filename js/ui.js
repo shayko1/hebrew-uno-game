@@ -243,7 +243,7 @@ export function renderBotHands(state) {
     const existingName = container.querySelector('.bot-name');
     if (existingName) {
       const avatar = BOT_AVATARS[index] || '';
-      existingName.innerHTML = '';
+      clearChildren(existingName);
       if (avatar) {
         const avatarSpan = document.createElement('span');
         avatarSpan.classList.add('bot-avatar');
@@ -332,6 +332,9 @@ export function renderCenterArea(state) {
       dirIndicator.classList.remove('direction-spin');
       void dirIndicator.offsetWidth; // force reflow to re-trigger animation
       dirIndicator.classList.add('direction-spin');
+      dirIndicator.addEventListener('animationend', () => {
+        dirIndicator.classList.remove('direction-spin');
+      }, { once: true });
     }
     lastDirection = state.direction;
   }
@@ -401,11 +404,13 @@ export function showUnoPopup() {
   }, 1000);
 }
 
+let hideTimer = null;
+
 export function showColorPicker() {
   const picker = document.getElementById('color-picker');
   if (picker) {
-    picker.classList.remove('hidden');
-    // Trigger transition after removing hidden (which sets display:none)
+    clearTimeout(hideTimer);
+    picker.classList.remove('hidden', 'visible');
     requestAnimationFrame(() => picker.classList.add('visible'));
   }
 }
@@ -414,8 +419,7 @@ export function hideColorPicker() {
   const picker = document.getElementById('color-picker');
   if (picker) {
     picker.classList.remove('visible');
-    // Wait for fade-out transition, then hide
-    setTimeout(() => picker.classList.add('hidden'), 200);
+    hideTimer = setTimeout(() => picker.classList.add('hidden'), 200);
   }
 }
 

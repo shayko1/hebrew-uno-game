@@ -59,6 +59,7 @@ function startGame() {
     clearTimeout(botTurnTimeout);
     botTurnTimeout = null;
   }
+  animating = false;
   state = createGameState(selectedPlayerCount);
   turnCount = 0;
   showScreen('game-screen');
@@ -109,11 +110,14 @@ async function handleCardClick(card) {
 
   // Animate card flight to discard pile
   animating = true;
-  soundCardPlay();
-  const discardEl = document.getElementById('discard-pile');
-  await flyCard(cardEl, discardEl);
-  animateCardToDiscard();
-  animating = false;
+  try {
+    soundCardPlay();
+    const discardEl = document.getElementById('discard-pile');
+    await flyCard(cardEl, discardEl);
+    animateCardToDiscard();
+  } finally {
+    animating = false;
+  }
 
   if (card.type === 'special') {
     playSpecialSound(card.value);
@@ -141,11 +145,14 @@ async function handleColorChoice(color) {
   playCard(state, 0, card.id, color);
 
   animating = true;
-  soundWild();
-  const discardEl = document.getElementById('discard-pile');
-  await flyCard(cardEl, discardEl);
-  animateCardToDiscard();
-  animating = false;
+  try {
+    soundWild();
+    const discardEl = document.getElementById('discard-pile');
+    await flyCard(cardEl, discardEl);
+    animateCardToDiscard();
+  } finally {
+    animating = false;
+  }
 
   if (card.value === SPECIAL_TYPES.WILD_DRAW_FOUR) {
     showActionFeedback('wild_draw_four');
@@ -169,15 +176,17 @@ async function handleDrawPile() {
   const drawn = drawCards(state, 0, 1);
   if (drawn.length === 0) return;
 
-  animating = true;
-  soundCardDraw();
-
-  const drawPileEl = document.getElementById('draw-pile');
-  const handEl = document.getElementById('player-hand');
   const drawnCard = drawn[0];
 
-  await flyFlipCard(drawPileEl, handEl, drawnCard);
-  animating = false;
+  animating = true;
+  try {
+    soundCardDraw();
+    const drawPileEl = document.getElementById('draw-pile');
+    const handEl = document.getElementById('player-hand');
+    await flyFlipCard(drawPileEl, handEl, drawnCard);
+  } finally {
+    animating = false;
+  }
 
   const topCard = getTopCard(state);
   const playable = getPlayableCards([drawnCard], topCard, state.currentColor);
