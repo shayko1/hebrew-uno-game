@@ -62,6 +62,7 @@ function createStatItem(value, label) {
 }
 
 export function renderStatsOverlay() {
+  if (document.getElementById('stats-overlay')) return;
   const stats = getStats();
   const winRate = stats.gamesPlayed > 0
     ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100)
@@ -107,7 +108,10 @@ export function renderStatsOverlay() {
   const closeBtn = document.createElement('button');
   closeBtn.classList.add('btn-stats-close');
   closeBtn.textContent = 'סגור';
-  closeBtn.addEventListener('click', () => overlay.remove());
+  closeBtn.addEventListener('click', () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onEsc);
+  });
   buttons.appendChild(closeBtn);
 
   const resetBtn = document.createElement('button');
@@ -116,6 +120,7 @@ export function renderStatsOverlay() {
   resetBtn.addEventListener('click', () => {
     localStorage.removeItem(STATS_KEY);
     overlay.remove();
+    document.removeEventListener('keydown', onEsc);
   });
   buttons.appendChild(resetBtn);
 

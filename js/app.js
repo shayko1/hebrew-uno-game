@@ -178,6 +178,7 @@ function handleUnoCall() {
 }
 
 function afterPlay() {
+  turnCount++;
   if (state.gameOver) {
     endGame();
     return;
