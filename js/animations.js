@@ -172,9 +172,6 @@ export function flyFlipCard(sourceEl, targetEl, card, opts = {}) {
   wrapper.appendChild(inner);
   layer.appendChild(wrapper);
 
-  // Hide original
-  sourceEl.style.opacity = '0';
-
   const dx = tgtCenter.x - srcCenter.x;
   const dy = tgtCenter.y - srcCenter.y;
 
