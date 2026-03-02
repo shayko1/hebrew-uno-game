@@ -924,6 +924,45 @@ html, body {
   .card-corner { font-size: 9px; }
 }
 
+/* ===== PWA Banners ===== */
+.install-banner, .update-banner {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.9);
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 16px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 600;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+}
+
+.install-btn, .update-btn {
+  background: #ED1C24;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.install-dismiss {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
 /* ================================================================
    REDUCED MOTION — respect user's motion preferences
    ================================================================ */

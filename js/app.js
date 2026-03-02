@@ -4,6 +4,7 @@ import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker,
 import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti, showActionFeedback, animateCardToDiscard } from './animations.js';
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
+import { initPWA } from './pwa.js';
 
 let state = null;
 let botTurnTimeout = null;
@@ -11,6 +12,7 @@ let selectedPlayerCount = 4;
 
 function init() {
   initAudio();
+  initPWA();
   showScreen('welcome-screen');
   renderWelcomeDecorations();
 

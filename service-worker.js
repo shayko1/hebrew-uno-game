@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uno-game-v1';
+const CACHE_NAME = 'uno-game-v2';
 const ASSETS = [
   '/hebrew-uno-game/',
   '/hebrew-uno-game/index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   '/hebrew-uno-game/js/bot.js',
   '/hebrew-uno-game/js/constants.js',
   '/hebrew-uno-game/js/deck.js',
+  '/hebrew-uno-game/js/pwa.js',
   '/hebrew-uno-game/js/sounds.js',
   '/hebrew-uno-game/js/state.js',
   '/hebrew-uno-game/js/ui.js'
