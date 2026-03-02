@@ -1,6 +1,6 @@
 import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
-import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast } from './ui.js';
+import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti, showActionFeedback, animateCardToDiscard } from './animations.js';
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
@@ -298,11 +298,13 @@ function endGame() {
   if (state.winner === 0) {
     soundWin();
     showEndScreen('כל הכבוד! ניצחת!');
+    announce('כל הכבוד! ניצחת!');
     showConfetti();
   } else {
     soundLose();
     const winnerName = PLAYER_NAMES[state.winner] || '';
     showEndScreen(winnerName + ' ניצח! נסה שוב');
+    announce(winnerName + ' ניצח! נסה שוב');
   }
 }
 

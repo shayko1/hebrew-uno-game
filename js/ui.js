@@ -21,6 +21,7 @@ export function showToast(message, duration = 2000) {
   toast.classList.add('game-toast');
   toast.textContent = message;
   document.body.appendChild(toast);
+  announce(message);
 
   // Trigger animation
   requestAnimationFrame(() => toast.classList.add('show'));
@@ -29,6 +30,13 @@ export function showToast(message, duration = 2000) {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
   }, duration);
+}
+
+export function announce(message) {
+  const el = document.getElementById('game-announcements');
+  if (el) {
+    el.textContent = message;
+  }
 }
 
 /**
@@ -316,6 +324,7 @@ export function renderCenterArea(state) {
   if (turnMessage) {
     if (state.currentPlayer === 0) {
       turnMessage.textContent = '\u0021\u05EA\u05D5\u05E8\u05DA';
+      announce('!התור שלך');
     } else {
       turnMessage.textContent = '';
     }
