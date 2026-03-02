@@ -267,6 +267,8 @@ export function renderBotHands(state) {
   });
 }
 
+let lastDirection = null;
+
 /**
  * Renders the center area: discard pile top card, direction indicator, turn message.
  * @param {object} state - Game state
@@ -281,6 +283,10 @@ export function renderCenterArea(state) {
   const cardEl = createCardElement(topCard, true);
   cardEl.style.cursor = 'default';
   discardPile.appendChild(cardEl);
+
+  // Color ring glow
+  discardPile.classList.remove('discard-glow-red', 'discard-glow-blue', 'discard-glow-green', 'discard-glow-yellow');
+  discardPile.classList.add('discard-glow-' + state.currentColor);
 
   // Always show current color indicator
   const existingIndicator = discardPile.querySelector('.color-indicator-bar');
@@ -312,11 +318,22 @@ export function renderCenterArea(state) {
     drawPileEl.appendChild(drawCount);
   }
   drawCount.textContent = state.drawPile.length;
+  if (state.drawPile.length <= 10 && state.drawPile.length > 0) {
+    drawCount.classList.add('draw-count-low');
+  } else {
+    drawCount.classList.remove('draw-count-low');
+  }
 
   // Direction indicator
   const dirIndicator = document.getElementById('direction-indicator');
   if (dirIndicator) {
     dirIndicator.textContent = state.direction === 1 ? '\u21BB' : '\u21BA';
+    if (lastDirection !== null && lastDirection !== state.direction) {
+      dirIndicator.classList.remove('direction-spin');
+      void dirIndicator.offsetWidth; // force reflow to re-trigger animation
+      dirIndicator.classList.add('direction-spin');
+    }
+    lastDirection = state.direction;
   }
 
   // Turn message
