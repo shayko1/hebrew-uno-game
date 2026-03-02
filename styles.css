@@ -925,6 +925,41 @@ html, body {
 }
 
 /* ================================================================
+   REDUCED MOTION — respect user's motion preferences
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .floating-card,
+  .game-title,
+  .confetti-piece,
+  .uno-popup,
+  .active-player,
+  .btn-uno, #uno-btn {
+    animation: none !important;
+  }
+
+  .card,
+  .hand-card,
+  .btn-primary,
+  .draw-pile,
+  #draw-pile,
+  .color-btn,
+  .game-toast,
+  .action-feedback {
+    transition: none !important;
+  }
+
+  .hand-card.playable:hover,
+  .hand-card.playable:active {
+    transform: none !important;
+    box-shadow: 0 0 0 3px rgba(255,215,0,0.6);
+  }
+
+  .card-played-flash {
+    animation: none !important;
+  }
+}
+
+/* ================================================================
    PWA STANDALONE MODE — safe area for when added to home screen
    In standalone mode there's no Safari chrome so we need safe area.
    In regular Safari, the browser handles the notch natively.
