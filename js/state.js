@@ -45,7 +45,7 @@ export function createGameState(numPlayers = 4) {
     currentColor: discardPile[0].color,
     gameOver: false,
     winner: null,
-    unoCalledBy: new Set(),
+    lastCardCalledBy: new Set(),
     pendingAction: null
   };
 }

@@ -34,7 +34,7 @@ html, body {
 .hidden { display: none !important; }
 
 /* ================================================================
-   WELCOME SCREEN — Official UNO black/red branding
+   WELCOME SCREEN — Welcome Screen branding
    ================================================================ */
 #welcome-screen {
   background: #0a0a0a;
@@ -311,7 +311,7 @@ html, body {
 }
 
 #draw-pile::after {
-  content: "UNO";
+  content: "צבעוני";
   color: #ED1C24;
   font-size: 18px;
   font-weight: 900;
@@ -353,7 +353,7 @@ html, body {
 }
 
 /* ================================================================
-   CARDS — Official UNO design
+   CARDS
    White border, flat color, tilted white oval, colored number
    ================================================================ */
 .card {
@@ -446,7 +446,7 @@ html, body {
 .card-corner-top { top: 5px; left: 7px; }
 .card-corner-bottom { bottom: 5px; right: 7px; transform: rotate(180deg); }
 
-/* --- Colors — Official UNO palette --- */
+/* --- Colors --- */
 .card-red {
   background: #ED1C24;
   border: 3px solid white;
@@ -548,8 +548,8 @@ html, body {
   color: white;
 }
 
-/* ===== UNO Button ===== */
-.btn-uno, #uno-btn {
+/* ===== Last Card Button ===== */
+.btn-last-card, #last-card-btn {
   position: absolute;
   top: -8px; left: 50%;
   transform: translateX(-50%);
@@ -563,11 +563,11 @@ html, body {
   letter-spacing: 3px;
   cursor: pointer;
   z-index: 50;
-  animation: pulseUno 1s ease-in-out infinite;
+  animation: pulseLastCard 1s ease-in-out infinite;
   box-shadow: 0 3px 0 #b01018, 0 4px 16px rgba(237,28,36,0.5);
 }
 
-@keyframes pulseUno {
+@keyframes pulseLastCard {
   0%, 100% { transform: translateX(-50%) scale(1); }
   50% { transform: translateX(-50%) scale(1.08); }
 }
@@ -661,8 +661,8 @@ html, body {
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
-/* ===== UNO Popup ===== */
-.uno-popup {
+/* ===== Last Card Popup ===== */
+.last-card-popup {
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%,-50%);
@@ -673,10 +673,10 @@ html, body {
   text-shadow: 0 0 30px rgba(237,28,36,0.6), 0 3px 0 #b01018;
   z-index: 400;
   pointer-events: none;
-  animation: unoBounce 1s ease-out forwards;
+  animation: lastCardBounce 1s ease-out forwards;
 }
 
-@keyframes unoBounce {
+@keyframes lastCardBounce {
   0% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
   30% { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
   50% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
@@ -890,11 +890,11 @@ html, body {
   .turn-message { font-size: 15px; }
   .direction-indicator { font-size: 20px; }
 
-  .uno-popup { font-size: 52px; }
+  .last-card-popup { font-size: 52px; }
   .action-feedback { font-size: 36px; }
   .game-toast { font-size: 14px; padding: 8px 16px; }
 
-  .btn-uno, #uno-btn {
+  .btn-last-card, #last-card-btn {
     padding: 6px 20px;
     font-size: 16px;
   }
@@ -1178,9 +1178,9 @@ html, body {
   .floating-card,
   .game-title,
   .confetti-piece,
-  .uno-popup,
+  .last-card-popup,
   .active-player,
-  .btn-uno, #uno-btn,
+  .btn-last-card, #last-card-btn,
   .direction-spin,
   .draw-count-low,
   .turn-flash {

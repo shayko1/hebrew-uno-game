@@ -1,7 +1,7 @@
 {
-  "name": "UNO - משחק קלפים",
-  "short_name": "UNO",
-  "description": "משחק הקלפים המוכר והאהוב - שחקו עם המשפחה",
+  "name": "צבעוני! - משחק קלפים",
+  "short_name": "צבעוני!",
+  "description": "משחק קלפים צבעוני ומהנה - שחקו עם המשפחה",
   "start_url": "/hebrew-uno-game/",
   "scope": "/hebrew-uno-game/",
   "id": "/hebrew-uno-game/",

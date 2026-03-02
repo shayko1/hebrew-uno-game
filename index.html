@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>UNO - משחק קלפים</title>
+  <title>צבעוני! - משחק קלפים</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
   <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="UNO">
+  <meta name="apple-mobile-web-app-title" content="צבעוני!">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
 
   <link rel="stylesheet" href="styles.css">
@@ -22,7 +22,7 @@
   <!-- Welcome Screen -->
   <div id="welcome-screen" class="screen">
     <div class="welcome-content">
-      <h1 class="game-title">UNO</h1>
+      <h1 class="game-title">!צבעוני</h1>
       <p class="welcome-subtitle">משחק הקלפים המוכר והאהוב</p>
       <div class="player-count-section">
         <span class="player-count-label">כמה שחקנים?</span>
@@ -56,7 +56,7 @@
       <!-- Center Area -->
       <div class="center-area">
         <div class="draw-pile" id="draw-pile" role="button" aria-label="שלוף קלף">
-          <div class="card card-back">UNO</div>
+          <div class="card card-back">צבעוני</div>
         </div>
         <div class="discard-pile" id="discard-pile"></div>
         <div class="direction-indicator" id="direction-indicator"></div>
@@ -75,7 +75,7 @@
       <!-- Player Area -->
       <div class="player-area">
         <div class="player-hand" id="player-hand"></div>
-        <button id="uno-btn" class="btn btn-uno hidden" aria-label="קרא אונו">!UNO</button>
+        <button id="last-card-btn" class="btn btn-last-card hidden" aria-label="קרא אחרון">!אחרון</button>
       </div>
 
       <div id="game-announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>

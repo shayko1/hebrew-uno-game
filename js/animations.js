@@ -252,7 +252,7 @@ export function flyCardBack(sourceEl, targetEl, opts = {}) {
 
   const oval = document.createElement('div');
   oval.classList.add('card-back-oval');
-  oval.textContent = 'UNO';
+  oval.textContent = 'צבעוני';
   back.appendChild(oval);
 
   layer.appendChild(back);

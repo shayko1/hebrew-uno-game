@@ -1,9 +1,9 @@
 import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
-import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
+import { renderGame, showScreen, showLastCardPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard, flyFlipCard, flyCardBack } from './animations.js';
-import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
+import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundLastCard, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
 import { recordGame, renderStatsOverlay } from './stats.js';
 
@@ -23,7 +23,7 @@ function init() {
   document.getElementById('play-again-btn').addEventListener('click', startGame);
   document.getElementById('restart-btn').addEventListener('click', handleRestart);
   document.getElementById('draw-pile').addEventListener('click', handleDrawPile);
-  document.getElementById('uno-btn').addEventListener('click', handleUnoCall);
+  document.getElementById('last-card-btn').addEventListener('click', handleLastCardCall);
   document.getElementById('stats-btn').addEventListener('click', () => renderStatsOverlay());
 
   // Player count selector
@@ -124,11 +124,11 @@ async function handleCardClick(card) {
     showActionFeedback(card.value);
   }
 
-  // UNO penalty: player has 1 card left but didn't call UNO
-  if (state.hands[0].length === 1 && !state.unoCalledBy.has(0)) {
+  // Last card penalty: player has 1 card left but didn't call last card
+  if (state.hands[0].length === 1 && !state.lastCardCalledBy.has(0)) {
     drawCards(state, 0, 2);
   }
-  state.unoCalledBy.delete(0);
+  state.lastCardCalledBy.delete(0);
 
   afterPlay();
 }
@@ -158,11 +158,11 @@ async function handleColorChoice(color) {
     showActionFeedback('wild_draw_four');
   }
 
-  // UNO penalty: player has 1 card left but didn't call UNO
-  if (state.hands[0].length === 1 && !state.unoCalledBy.has(0)) {
+  // Last card penalty: player has 1 card left but didn't call last card
+  if (state.hands[0].length === 1 && !state.lastCardCalledBy.has(0)) {
     drawCards(state, 0, 2);
   }
-  state.unoCalledBy.delete(0);
+  state.lastCardCalledBy.delete(0);
 
   afterPlay();
 }
@@ -202,11 +202,11 @@ async function handleDrawPile() {
   }
 }
 
-function handleUnoCall() {
+function handleLastCardCall() {
   if (!state) return;
-  state.unoCalledBy.add(0);
-  soundUno();
-  showUnoPopup();
+  state.lastCardCalledBy.add(0);
+  soundLastCard();
+  showLastCardPopup();
   renderGame(state, handleCardClick);
 }
 
@@ -282,10 +282,10 @@ async function executeBotTurn() {
       chosenColor = botChooseColor(hand);
     }
 
-    // Bot calls UNO when going from 2 cards to 1
+    // Bot calls last card when going from 2 cards to 1
     if (hand.length === 2) {
-      soundUno();
-      showUnoPopup();
+      soundLastCard();
+      showLastCardPopup();
     }
 
     playCard(state, botIndex, card.id, chosenColor);

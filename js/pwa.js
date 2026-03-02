@@ -7,9 +7,9 @@ export function initPWA() {
     e.preventDefault();
     deferredPrompt = e;
 
-    const visits = parseInt(localStorage.getItem('uno_visits') || '0', 10);
+    const visits = parseInt(localStorage.getItem('tsivoni_visits') || '0', 10);
     if (visits >= 3) return;
-    localStorage.setItem('uno_visits', String(visits + 1));
+    localStorage.setItem('tsivoni_visits', String(visits + 1));
 
     showInstallBanner();
   });
@@ -57,7 +57,7 @@ function showInstallBanner() {
   dismissBtn.setAttribute('aria-label', 'סגור');
   dismissBtn.addEventListener('click', () => {
     banner.remove();
-    localStorage.setItem('uno_visits', '3');
+    localStorage.setItem('tsivoni_visits', '3');
   });
   banner.appendChild(dismissBtn);
 

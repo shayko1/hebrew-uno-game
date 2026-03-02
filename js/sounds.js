@@ -57,7 +57,7 @@ export function soundWild() {
   setTimeout(() => playTone(1100, 0.2, 'sine', 0.25), 300);
 }
 
-export function soundUno() {
+export function soundLastCard() {
   // Exciting ascending arpeggio
   [500, 630, 750, 1000].forEach((freq, i) => {
     setTimeout(() => playTone(freq, 0.15, 'sine', 0.25), i * 80);

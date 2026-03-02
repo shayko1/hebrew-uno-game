@@ -1,6 +1,6 @@
 // Local game statistics — stored in localStorage
 
-const STATS_KEY = 'uno_game_stats';
+const STATS_KEY = 'tsivoni_game_stats';
 
 function getStats() {
   try {

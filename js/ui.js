@@ -64,7 +64,7 @@ export function createCardElement(card, faceUp = true) {
     el.classList.add('card-back');
     const backOval = document.createElement('div');
     backOval.classList.add('card-back-oval');
-    backOval.textContent = 'UNO';
+    backOval.textContent = 'צבעוני';
     el.appendChild(backOval);
     return el;
   }
@@ -227,7 +227,7 @@ export function renderBotHands(state) {
     for (let i = 0; i < shown; i++) {
       const cardBack = document.createElement('div');
       cardBack.classList.add('bot-card-back');
-      cardBack.textContent = 'UNO';
+      cardBack.textContent = 'צבעוני';
       handContainer.appendChild(cardBack);
     }
 
@@ -352,7 +352,7 @@ export function renderCenterArea(state) {
 }
 
 /**
- * Renders the full game: all hands, center area, UNO button, active-player.
+ * Renders the full game: all hands, center area, last card button, active-player.
  * @param {object} state - Game state
  * @param {function} onCardClick - Callback when a player card is clicked
  */
@@ -361,15 +361,15 @@ export function renderGame(state, onCardClick) {
   renderBotHands(state);
   renderCenterArea(state);
 
-  // Toggle UNO button visibility (player is always index 0)
-  const unoBtn = document.getElementById('uno-btn');
-  if (unoBtn) {
+  // Toggle last card button visibility (player is always index 0)
+  const lastCardBtn = document.getElementById('last-card-btn');
+  if (lastCardBtn) {
     const isMyTurn = state.currentPlayer === 0;
     const hasTwoCards = state.hands[0].length === 2;
     if (isMyTurn && hasTwoCards) {
-      unoBtn.classList.remove('hidden');
+      lastCardBtn.classList.remove('hidden');
     } else {
-      unoBtn.classList.add('hidden');
+      lastCardBtn.classList.add('hidden');
     }
   }
 
@@ -389,12 +389,12 @@ export function renderGame(state, onCardClick) {
 }
 
 /**
- * Shows a temporary UNO popup in the center of the screen.
+ * Shows a temporary last card popup in the center of the screen.
  */
-export function showUnoPopup() {
+export function showLastCardPopup() {
   const popup = document.createElement('div');
-  popup.classList.add('uno-popup');
-  popup.textContent = 'UNO!';
+  popup.classList.add('last-card-popup');
+  popup.textContent = '!אחרון';
   document.body.appendChild(popup);
 
   setTimeout(() => {
@@ -434,7 +434,7 @@ export function renderWelcomeDecorations() {
   for (let i = 0; i < count; i++) {
     const card = document.createElement('div');
     card.classList.add('floating-card');
-    card.textContent = 'UNO';
+    card.textContent = 'צבעוני';
     card.style.top = (10 + Math.random() * 70) + '%';
     card.style.left = (5 + Math.random() * 85) + '%';
     card.style.animationDelay = (Math.random() * 5) + 's';

@@ -7,7 +7,7 @@ function makeCard(color, type, value) {
 }
 
 /**
- * Creates a standard 108-card UNO deck.
+ * Creates a standard 108-card deck.
  * - For each of 4 colors: one 0, two each of 1-9,
  *   two each of Skip, Reverse, Draw Two
  * - 4 Wilds and 4 Wild Draw Fours (color = 'wild')
