@@ -960,6 +960,27 @@ html, body {
 }
 
 /* ================================================================
+   FOCUS VISIBLE — keyboard navigation indicators
+   ================================================================ */
+*:focus { outline: none; }
+
+*:focus-visible {
+  outline: 3px solid #FFD700;
+  outline-offset: 2px;
+}
+
+.hand-card:focus-visible {
+  box-shadow: 0 0 0 3px #FFD700, 0 4px 16px rgba(255,215,0,0.4);
+  z-index: 100 !important;
+}
+
+.color-btn:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 3px;
+  transform: scale(1.1);
+}
+
+/* ================================================================
    PWA STANDALONE MODE — safe area for when added to home screen
    In standalone mode there's no Safari chrome so we need safe area.
    In regular Safari, the browser handles the notch natively.
