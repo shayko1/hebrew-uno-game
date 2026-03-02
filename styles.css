@@ -10,8 +10,6 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   background: #000;
-  /* Safe area for iPhone notch / Dynamic Island */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .screen {
@@ -32,6 +30,8 @@ html, body {
   align-items: center;
   position: relative;
   overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 #welcome-screen::before {
@@ -177,6 +177,8 @@ html, body {
   grid-template-rows: 90px 1fr auto;
   grid-template-columns: 90px 1fr 90px;
   position: relative;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .game-table::before {
@@ -589,6 +591,8 @@ html, body {
   align-items: center;
   gap: 28px;
   z-index: 300;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .end-message {
