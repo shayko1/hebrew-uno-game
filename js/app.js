@@ -2,7 +2,7 @@ import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
 import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
-import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard, flyFlipCard } from './animations.js';
+import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard, flyFlipCard, flyCardBack } from './animations.js';
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
 import { recordGame, renderStatsOverlay } from './stats.js';
@@ -241,7 +241,7 @@ function scheduleBotTurn() {
   }, delay);
 }
 
-function executeBotTurn() {
+async function executeBotTurn() {
   if (!state || state.gameOver) return;
 
   const botIndex = state.currentPlayer;
@@ -257,6 +257,15 @@ function executeBotTurn() {
   const topCard = getTopCard(state);
   const card = botChooseCard(hand, topCard, state.currentColor);
 
+  // Determine bot area element for animation start position
+  const botPositions = { 1: 'bot-left', 2: 'bot-top', 3: 'bot-right' };
+  let botAreaId = botPositions[botIndex];
+  if (state.numPlayers === 2) botAreaId = 'bot-top';
+  else if (state.numPlayers === 3 && botIndex === 2) botAreaId = 'bot-right';
+  const botAreaEl = document.getElementById(botAreaId);
+  const discardEl = document.getElementById('discard-pile');
+  const drawPileEl = document.getElementById('draw-pile');
+
   if (card) {
     let chosenColor = null;
 
@@ -271,7 +280,10 @@ function executeBotTurn() {
     }
 
     playCard(state, botIndex, card.id, chosenColor);
+
+    // Animate: card-back flies from bot area to discard, flips to reveal
     soundBotPlay();
+    await flyFlipCard(botAreaEl, discardEl, card);
     animateCardToDiscard();
 
     // Show toast and feedback for special cards
@@ -295,6 +307,9 @@ function executeBotTurn() {
     showToast(botName + ' שולף קלף');
     soundCardDraw();
 
+    // Animate: card-back flies from draw pile to bot area
+    await flyCardBack(drawPileEl, botAreaEl);
+
     if (drawn.length > 0) {
       const drawnCard = drawn[0];
       const currentTopCard = getTopCard(state);
@@ -306,7 +321,10 @@ function executeBotTurn() {
           chosenColor = botChooseColor(state.hands[botIndex]);
         }
         playCard(state, botIndex, drawnCard.id, chosenColor);
+
+        // Animate: bot plays the drawn card
         soundBotPlay();
+        await flyFlipCard(botAreaEl, discardEl, drawnCard);
         animateCardToDiscard();
 
         if (drawnCard.type === 'special') {
