@@ -2,7 +2,7 @@ import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
 import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nextPlayerIndex } from './state.js';
 import { renderGame, showScreen, showUnoPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
-import { showConfetti, showActionFeedback, animateCardToDiscard } from './animations.js';
+import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard } from './animations.js';
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundUno, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
 import { recordGame, renderStatsOverlay } from './stats.js';
@@ -11,6 +11,7 @@ let state = null;
 let botTurnTimeout = null;
 let selectedPlayerCount = 4;
 let turnCount = 0;
+let animating = false;
 
 function init() {
   initAudio();
@@ -87,10 +88,11 @@ function playSpecialSound(cardValue) {
   }
 }
 
-function handleCardClick(card) {
+async function handleCardClick(card) {
   if (!state || state.gameOver) return;
   if (state.currentPlayer !== 0) return;
   if (state.pendingAction) return;
+  if (animating) return;
 
   // Wild card: show color picker first
   if (card.color === 'wild') {
@@ -99,12 +101,19 @@ function handleCardClick(card) {
     return;
   }
 
+  // Find the card element before state change removes it
+  const cardEl = document.querySelector('[data-card-id="' + card.id + '"]');
+
   const success = playCard(state, 0, card.id);
   if (!success) return;
 
-  // Sound and visual feedback
+  // Animate card flight to discard pile
+  animating = true;
   soundCardPlay();
+  const discardEl = document.getElementById('discard-pile');
+  await flyCard(cardEl, discardEl);
   animateCardToDiscard();
+  animating = false;
 
   if (card.type === 'special') {
     playSpecialSound(card.value);
@@ -120,16 +129,23 @@ function handleCardClick(card) {
   afterPlay();
 }
 
-function handleColorChoice(color) {
+async function handleColorChoice(color) {
   if (!state || !state.pendingAction || state.pendingAction.type !== 'colorPick') return;
+  if (animating) return;
 
   const card = state.pendingAction.card;
+  const cardEl = document.querySelector('[data-card-id="' + card.id + '"]');
   state.pendingAction = null;
   hideColorPicker();
 
   playCard(state, 0, card.id, color);
+
+  animating = true;
   soundWild();
+  const discardEl = document.getElementById('discard-pile');
+  await flyCard(cardEl, discardEl);
   animateCardToDiscard();
+  animating = false;
 
   if (card.value === SPECIAL_TYPES.WILD_DRAW_FOUR) {
     showActionFeedback('wild_draw_four');
@@ -148,6 +164,7 @@ function handleDrawPile() {
   if (!state || state.gameOver) return;
   if (state.currentPlayer !== 0) return;
   if (state.pendingAction) return;
+  if (animating) return;
 
   const drawn = drawCards(state, 0, 1);
   if (drawn.length === 0) return;
