@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uno-game-v3';
+const CACHE_NAME = 'uno-game-v4';
 const ASSETS = [
   '/hebrew-uno-game/',
   '/hebrew-uno-game/index.html',

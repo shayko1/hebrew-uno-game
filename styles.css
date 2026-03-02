@@ -1180,7 +1180,10 @@ html, body {
   .confetti-piece,
   .uno-popup,
   .active-player,
-  .btn-uno, #uno-btn {
+  .btn-uno, #uno-btn,
+  .direction-spin,
+  .draw-count-low,
+  .turn-flash {
     animation: none !important;
   }
 
@@ -1191,7 +1194,13 @@ html, body {
   #draw-pile,
   .color-btn,
   .game-toast,
-  .action-feedback {
+  .action-feedback,
+  .card-flight,
+  .card-flip-wrapper,
+  .card-flip-inner,
+  #color-picker,
+  #color-picker .color-btn,
+  #discard-pile {
     transition: none !important;
   }
 
