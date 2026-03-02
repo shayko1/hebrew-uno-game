@@ -16,6 +16,7 @@ function init() {
 
   document.getElementById('start-btn').addEventListener('click', startGame);
   document.getElementById('play-again-btn').addEventListener('click', startGame);
+  document.getElementById('restart-btn').addEventListener('click', handleRestart);
   document.getElementById('draw-pile').addEventListener('click', handleDrawPile);
   document.getElementById('uno-btn').addEventListener('click', handleUnoCall);
 
@@ -32,6 +33,12 @@ function init() {
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => handleColorChoice(btn.dataset.color));
   });
+}
+
+function handleRestart() {
+  if (!state) return;
+  startGame();
+  showToast('משחק חדש!');
 }
 
 function startGame() {
