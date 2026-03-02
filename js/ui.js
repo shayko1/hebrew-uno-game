@@ -374,6 +374,10 @@ export function renderGame(state, onCardClick) {
   const playerArea = document.querySelector('.player-area');
   if (playerArea) {
     if (state.currentPlayer === 0) {
+      if (!playerArea.classList.contains('active-player')) {
+        playerArea.classList.add('turn-flash');
+        setTimeout(() => playerArea.classList.remove('turn-flash'), 400);
+      }
       playerArea.classList.add('active-player');
     } else {
       playerArea.classList.remove('active-player');
@@ -401,13 +405,17 @@ export function showColorPicker() {
   const picker = document.getElementById('color-picker');
   if (picker) {
     picker.classList.remove('hidden');
+    // Trigger transition after removing hidden (which sets display:none)
+    requestAnimationFrame(() => picker.classList.add('visible'));
   }
 }
 
 export function hideColorPicker() {
   const picker = document.getElementById('color-picker');
   if (picker) {
-    picker.classList.add('hidden');
+    picker.classList.remove('visible');
+    // Wait for fade-out transition, then hide
+    setTimeout(() => picker.classList.add('hidden'), 200);
   }
 }
 
