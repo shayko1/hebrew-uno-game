@@ -1,13 +1,15 @@
 {
   "name": "UNO - משחק קלפים",
   "short_name": "UNO",
-  "description": "משחק הקלפים המוכר והאהוב",
+  "description": "משחק הקלפים המוכר והאהוב - שחקו עם המשפחה",
   "start_url": "/hebrew-uno-game/",
   "scope": "/hebrew-uno-game/",
+  "id": "/hebrew-uno-game/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#ED1C24",
+  "categories": ["games"],
   "icons": [
     {
       "src": "icons/icon-192.png",
