@@ -485,10 +485,14 @@ export function renderWelcomeDecorations() {
   }
 }
 
-export function showEndScreen(message) {
+export function showEndScreen(message, subtitle) {
   const endMsg = document.getElementById('end-message');
   if (endMsg) {
     endMsg.textContent = message;
+  }
+  const subtitleEl = document.getElementById('end-subtitle');
+  if (subtitleEl) {
+    subtitleEl.textContent = subtitle || '';
   }
   showScreen('end-screen');
 }

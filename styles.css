@@ -675,6 +675,24 @@ html, body {
   padding: 0 20px;
 }
 
+.end-subtitle {
+  color: rgba(255,255,255,0.7);
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 20px;
+}
+
+#end-screen.end-win .end-message {
+  color: #FFD700;
+}
+
+#end-screen.end-lose .end-message {
+  color: rgba(255,255,255,0.85);
+  font-size: 34px;
+  text-shadow: 0 2px 16px rgba(255,255,255,0.15);
+}
+
 #end-screen .btn-primary { font-size: 22px; }
 
 /* ===== Confetti ===== */
@@ -975,6 +993,8 @@ html, body {
   .color-btn { width: 52px; height: 52px; }
 
   .end-message { font-size: 32px; }
+  .end-subtitle { font-size: 16px; }
+  #end-screen.end-lose .end-message { font-size: 28px; }
 
   .turn-message { font-size: 15px; }
   .direction-indicator { font-size: 20px; }

@@ -475,16 +475,31 @@ async function executeBotTurn() {
 function endGame() {
   clearSnapshot();
   recordGame(state.winner === 0, state.numPlayers, turnCount);
+
+  const endScreen = document.getElementById('end-screen');
+  if (endScreen) {
+    endScreen.classList.remove('end-win', 'end-lose');
+  }
+
   if (state.winner === 0) {
+    if (endScreen) endScreen.classList.add('end-win');
     soundWin();
-    showEndScreen('כל הכבוד! ניצחת!');
+    showEndScreen('\u{1F389} כל הכבוד! ניצחת!', 'שיחקת מעולה!');
     announce('כל הכבוד! ניצחת!');
     showConfetti();
   } else {
+    if (endScreen) endScreen.classList.add('end-lose');
     soundLose();
     const winnerName = PLAYER_NAMES[state.winner] || '';
-    showEndScreen(winnerName + ' ניצח! נסה שוב');
-    announce(winnerName + ' ניצח! נסה שוב');
+    const encouragements = [
+      'כמעט הצלחת! עוד סיבוב?',
+      'לא נורא, בפעם הבאה!',
+      'שיחקת טוב! נסה שוב?',
+      'היה קרוב! עוד משחק?',
+    ];
+    const subtitle = encouragements[Math.floor(Math.random() * encouragements.length)];
+    showEndScreen(winnerName + ' ניצח הפעם', subtitle);
+    announce(winnerName + ' ניצח הפעם. ' + subtitle);
   }
 }
 
