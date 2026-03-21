@@ -52,3 +52,10 @@ export const COLOR_NAMES = {
   green: 'ירוק',
   yellow: 'צהוב'
 };
+
+export const COLOR_SHAPES = {
+  red: '\u25CF',
+  blue: '\u25A0',
+  green: '\u25B2',
+  yellow: '\u25C6'
+};

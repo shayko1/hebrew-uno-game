@@ -446,6 +446,14 @@ html, body {
 .card-corner-top { top: 5px; left: 7px; }
 .card-corner-bottom { bottom: 5px; right: 7px; transform: rotate(180deg); }
 
+/* Color-blind accessibility shape indicator */
+.card-corner-shape {
+  display: block;
+  font-size: 8px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
 /* --- Colors --- */
 .card-red {
   background: #ED1C24;
@@ -897,6 +905,7 @@ html, body {
   .card-corner { font-size: 11px; }
   .card-corner-top { top: 4px; left: 5px; }
   .card-corner-bottom { bottom: 4px; right: 5px; }
+  .card-corner-shape { font-size: 6px; }
 
   .card-back-oval {
     font-size: 12px;
@@ -959,6 +968,7 @@ html, body {
   .hand-card { width: 58px; height: 87px; }
   .card-value { font-size: 28px; }
   .card-corner { font-size: 9px; }
+  .card-corner-shape { font-size: 5px; }
 }
 
 /* ===== Animation Layer ===== */
@@ -1895,6 +1905,10 @@ html, body {
 
   #game-screen .card-corner {
     font-size: 8px;
+  }
+
+  #game-screen .card-corner-shape {
+    font-size: 5px;
   }
 
   #game-screen .turn-message {

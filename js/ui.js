@@ -1,6 +1,6 @@
 // UI rendering and DOM manipulation
 
-import { SPECIAL_SYMBOLS, COLOR_HEX, PLAYER_NAMES, BOT_AVATARS, COLOR_NAMES } from './constants.js';
+import { SPECIAL_SYMBOLS, COLOR_HEX, PLAYER_NAMES, BOT_AVATARS, COLOR_NAMES, COLOR_SHAPES } from './constants.js';
 import { getTopCard, canPlayCard } from './state.js';
 
 export function showScreen(screenId) {
@@ -80,10 +80,19 @@ export function createCardElement(card, faceUp = true) {
     symbol = SPECIAL_SYMBOLS[card.value] || '';
   }
 
+  // Color-blind accessibility shape (non-wild cards only)
+  const shape = COLOR_SHAPES[card.color];
+
   // Top-left corner
   const cornerTop = document.createElement('span');
   cornerTop.classList.add('card-corner', 'card-corner-top');
   cornerTop.textContent = symbol;
+  if (shape) {
+    const shapeSpan = document.createElement('span');
+    shapeSpan.classList.add('card-corner-shape');
+    shapeSpan.textContent = shape;
+    cornerTop.appendChild(shapeSpan);
+  }
 
   // Tilted white oval with large centered symbol
   const oval = document.createElement('div');
@@ -97,6 +106,12 @@ export function createCardElement(card, faceUp = true) {
   const cornerBottom = document.createElement('span');
   cornerBottom.classList.add('card-corner', 'card-corner-bottom');
   cornerBottom.textContent = symbol;
+  if (shape) {
+    const shapeSpan = document.createElement('span');
+    shapeSpan.classList.add('card-corner-shape');
+    shapeSpan.textContent = shape;
+    cornerBottom.appendChild(shapeSpan);
+  }
 
   el.appendChild(cornerTop);
   el.appendChild(oval);
