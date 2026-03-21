@@ -340,6 +340,7 @@ export function showConfetti() {
 export function showActionFeedback(actionType) {
   const feedback = document.createElement('div');
   feedback.classList.add('action-feedback');
+  feedback.classList.add('action-feedback-' + actionType);
 
   switch (actionType) {
     case 'skip':

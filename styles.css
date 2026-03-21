@@ -765,6 +765,58 @@ html, body {
   opacity: 1;
 }
 
+/* --- Per-type action feedback --- */
+
+/* Skip — red/stop theme */
+.action-feedback-skip {
+  color: #ff4757;
+  text-shadow: 0 0 24px rgba(255,71,87,0.8), 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Reverse — blue/swirl theme */
+.action-feedback-reverse {
+  color: #3b82f6;
+  text-shadow: 0 0 24px rgba(59,130,246,0.8), 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.action-feedback-reverse.show {
+  animation: reverseSpinIn 0.5s ease-out;
+}
+
+@keyframes reverseSpinIn {
+  0% { transform: translate(-50%,-50%) scale(0.5) rotate(-180deg); opacity: 0; }
+  100% { transform: translate(-50%,-50%) scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Draw Two — orange/warning theme */
+.action-feedback-draw_two {
+  color: #ff9f43;
+  text-shadow: 0 0 24px rgba(255,159,67,0.8), 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Wild Draw Four — rainbow/intense theme */
+#game-screen .action-feedback-wild_draw_four,
+.action-feedback-wild_draw_four {
+  background: linear-gradient(90deg, #ff4757, #3b82f6, #2ed573, #ffc048);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  font-size: 56px;
+}
+
+/* Draw penalty bounce animation (+2 and +4) */
+.action-feedback-draw_two.show,
+.action-feedback-wild_draw_four.show {
+  animation: drawBounce 0.4s ease-out;
+}
+
+@keyframes drawBounce {
+  0% { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
+  50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+}
+
 /* ===== Draw Count ===== */
 .draw-count {
   position: absolute;
@@ -929,6 +981,7 @@ html, body {
 
   .last-card-popup { font-size: 52px; }
   .action-feedback { font-size: 36px; }
+  .action-feedback-wild_draw_four { font-size: 42px; }
   .game-toast { font-size: 14px; padding: 8px 16px; }
 
   .btn-last-card, #last-card-btn {
@@ -1248,6 +1301,12 @@ html, body {
   }
 
   .card-played-flash {
+    animation: none !important;
+  }
+
+  .action-feedback-reverse.show,
+  .action-feedback-draw_two.show,
+  .action-feedback-wild_draw_four.show {
     animation: none !important;
   }
 }
