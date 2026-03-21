@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>צבעוני! - משחק קלפים</title>
 
   <!-- PWA -->
@@ -83,15 +83,16 @@
   </div>
 
   <!-- Color Picker Overlay -->
-  <div id="color-picker" class="overlay hidden" role="dialog" aria-label="בחר צבע">
+  <div id="color-picker" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="color-picker-title">
     <div class="color-picker-content">
-      <h2>?בחר צבע</h2>
+      <h2 id="color-picker-title">?בחר צבע</h2>
       <div class="color-buttons">
         <button class="color-btn color-red" data-color="red" aria-label="אדום"></button>
         <button class="color-btn color-blue" data-color="blue" aria-label="כחול"></button>
         <button class="color-btn color-green" data-color="green" aria-label="ירוק"></button>
         <button class="color-btn color-yellow" data-color="yellow" aria-label="צהוב"></button>
       </div>
+      <button id="color-picker-cancel" class="btn-cancel-color" aria-label="ביטול">ביטול</button>
     </div>
   </div>
 

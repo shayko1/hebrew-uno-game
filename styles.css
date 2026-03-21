@@ -572,6 +572,43 @@ html, body {
   50% { transform: translateX(-50%) scale(1.08); }
 }
 
+/* ===== Resume Prompt ===== */
+.resume-prompt {
+  background: linear-gradient(180deg, #fffefb 0%, #fff3df 100%);
+  border-radius: 28px;
+  padding: 28px 24px 20px;
+  text-align: center;
+  max-width: 320px;
+  width: calc(100vw - 40px);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+}
+
+.resume-prompt h2 {
+  color: #5f2a2d;
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.resume-prompt p {
+  color: #7a6758;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.resume-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resume-buttons .btn-secondary {
+  background: transparent;
+  color: #7a6758;
+  border: 1px solid #d5c9b8;
+  font-weight: 600;
+}
+
 /* ===== Color Picker ===== */
 .overlay {
   position: fixed;
@@ -1043,7 +1080,7 @@ html, body {
 .btn-stats {
   position: absolute;
   top: 16px; right: 16px;
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   border: none;
   background: rgba(255,255,255,0.08);
@@ -1263,5 +1300,615 @@ html, body {
 
   .game-toast {
     top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* ================================================================
+   COLOR PICKER (3D ARCADE) — scoped override only
+   This block affects only #color-picker and children.
+   ================================================================ */
+#color-picker.overlay {
+  background: rgba(18, 18, 22, 0.66);
+  backdrop-filter: blur(5px);
+}
+
+#color-picker .color-picker-content {
+  width: min(360px, calc(100vw - 20px));
+  padding: 24px 18px 14px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #fffefb 0%, #fff3df 100%);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 18px 36px rgba(23, 16, 10, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  gap: 14px;
+}
+
+#color-picker .color-picker-content h2 {
+  color: #5f2a2d;
+  font-size: 34px;
+  line-height: 1.08;
+  text-shadow: none;
+  text-align: center;
+}
+
+#color-picker .color-picker-content h2::after {
+  content: "בחר את הצבע הבא למשחק";
+  display: block;
+  margin-top: 8px;
+  color: #7a6758;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#color-picker .color-buttons {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+#color-picker .color-btn {
+  width: 100%;
+  height: 108px;
+  border-radius: 20px;
+  border: 3px solid #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 10px 20px rgba(20, 14, 9, 0.24),
+    0 6px 0 rgba(56, 36, 19, 0.2);
+}
+
+#color-picker .color-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 255, 255, 0.14) 28%,
+      transparent 52%,
+      rgba(0, 0, 0, 0.1) 100%);
+  pointer-events: none;
+}
+
+#color-picker .color-btn::after {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+#color-picker .color-btn.color-red {
+  background: linear-gradient(160deg, #ff7681 0%, #e63946 58%, #bf2d38 100%);
+}
+
+#color-picker .color-btn.color-red::after {
+  content: "אדום";
+  color: #fff;
+}
+
+#color-picker .color-btn.color-blue {
+  background: linear-gradient(160deg, #78b7ff 0%, #2f77c7 58%, #215da6 100%);
+}
+
+#color-picker .color-btn.color-blue::after {
+  content: "כחול";
+  color: #fff;
+}
+
+#color-picker .color-btn.color-green {
+  background: linear-gradient(160deg, #73dc96 0%, #31aa5b 58%, #208744 100%);
+}
+
+#color-picker .color-btn.color-green::after {
+  content: "ירוק";
+  color: #fff;
+}
+
+#color-picker .color-btn.color-yellow {
+  background: linear-gradient(160deg, #ffe999 0%, #f5c84a 58%, #da9f1a 100%);
+}
+
+#color-picker .color-btn.color-yellow::after {
+  content: "צהוב";
+  color: #6f4500;
+}
+
+#color-picker.visible .color-btn:hover,
+#color-picker.visible .color-btn:focus-visible {
+  transform: translateY(-4px) scale(1.04) !important;
+}
+
+.btn-cancel-color {
+  margin-top: 4px;
+  padding: 10px 32px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(95, 42, 45, 0.08);
+  color: #5f2a2d;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-cancel-color:hover {
+  background: rgba(95, 42, 45, 0.16);
+}
+
+@media (max-width: 600px) {
+  #color-picker .color-picker-content {
+    width: min(334px, calc(100vw - 16px));
+    border-radius: 24px;
+    padding: 18px 14px 12px;
+    gap: 12px;
+  }
+
+  #color-picker .color-picker-content h2 {
+    font-size: 28px;
+  }
+
+  #color-picker .color-picker-content h2::after {
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  #color-picker .color-btn {
+    height: 92px;
+    border-radius: 16px;
+  }
+
+  #color-picker .color-btn::after {
+    font-size: 16px;
+    bottom: 8px;
+  }
+}
+
+/* ================================================================
+   GAME TABLE (3D ARCADE) — scoped override only
+   This block affects only #game-screen and children.
+   ================================================================ */
+#game-screen {
+  background: #f2f3f5;
+}
+
+#game-screen .game-table {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 138, 148, 0.18) 0%, transparent 34%),
+    radial-gradient(circle at 84% 80%, rgba(255, 202, 96, 0.2) 0%, transparent 34%),
+    linear-gradient(180deg, #f4f5f7 0%, #eceff3 55%, #e7eaef 100%);
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 78px 1fr 78px;
+  position: relative;
+}
+
+#game-screen .game-table::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(90, 101, 119, 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#game-screen .game-table::after {
+  content: none;
+}
+
+#game-screen .center-area::before {
+  content: '';
+  position: absolute;
+  width: min(60vw, 320px);
+  aspect-ratio: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 3px dashed rgba(196, 203, 214, 0.9);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(245, 247, 250, 0.24) 62%, transparent 100%);
+  box-shadow: inset 0 10px 22px rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#game-screen .bot-area,
+#game-screen .center-area,
+#game-screen .player-area {
+  z-index: 2;
+}
+
+#game-screen .bot-name {
+  color: #4b5466;
+  font-size: 12px;
+  font-weight: 800;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+  border: 2px solid #d4dae5;
+  box-shadow: 0 6px 14px rgba(88, 96, 115, 0.15);
+}
+
+#game-screen .bot-top .bot-name {
+  border-color: #ff98a4;
+}
+
+#game-screen .bot-left .bot-name {
+  border-color: #9fc8ff;
+}
+
+#game-screen .bot-right .bot-name {
+  border-color: #ffd786;
+}
+
+#game-screen .bot-card-back {
+  border-radius: 10px;
+  border: 2px solid #ffffff;
+  background: linear-gradient(160deg, #5aa1ef 0%, #2f77c7 58%, #1c5ca8 100%);
+  color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 14px rgba(64, 76, 96, 0.24);
+}
+
+#game-screen .bot-count {
+  background: linear-gradient(180deg, #ffffff 0%, #f2f5f9 100%);
+  color: #3d4f69;
+  border: 2px solid #9db9df;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  position: static;
+  margin-top: 4px;
+}
+
+#game-screen .center-area {
+  gap: 20px;
+  overflow: hidden;
+}
+
+#game-screen #draw-pile {
+  border-radius: 24px;
+  border: 3px solid #2f77c7;
+  background: linear-gradient(160deg, #f9fcff 0%, #edf4fc 100%);
+  box-shadow:
+    0 16px 24px rgba(93, 120, 156, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+#game-screen #draw-pile::after {
+  content: '★';
+  color: #2f77c7;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow: 0 3px 10px rgba(47, 119, 199, 0.25);
+}
+
+#game-screen #discard-pile {
+  border-radius: 24px;
+  position: relative;
+}
+
+#game-screen #discard-pile::before,
+#game-screen #discard-pile::after {
+  content: '';
+  position: absolute;
+  width: 88px;
+  height: 132px;
+  border-radius: 18px;
+  border: 3px solid #ffffff;
+  background: linear-gradient(170deg, #f6f8fb 0%, #e8edf4 100%);
+  top: 0;
+  left: 0;
+  box-shadow: 0 10px 18px rgba(74, 86, 107, 0.18);
+  pointer-events: none;
+}
+
+#game-screen #discard-pile::before {
+  transform: rotate(-8deg) translate(-2px, 2px);
+  z-index: 0;
+}
+
+#game-screen #discard-pile::after {
+  transform: rotate(6deg) translate(3px, 1px);
+  z-index: 0;
+}
+
+#game-screen #discard-pile .card {
+  z-index: 1;
+}
+
+#game-screen .turn-message {
+  top: auto;
+  bottom: 8px;
+  color: #5c6678;
+  font-size: 14px;
+  font-weight: 700;
+  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid #d7deea;
+  box-shadow: 0 6px 14px rgba(90, 100, 118, 0.12);
+  padding: 6px 14px;
+  text-shadow: none;
+}
+
+#game-screen .direction-indicator {
+  color: #d94d63;
+  font-size: 26px;
+  text-shadow: 0 2px 8px rgba(217, 77, 99, 0.22);
+}
+
+#game-screen .draw-count {
+  background: rgba(255, 255, 255, 0.96);
+  color: #5b6372;
+  border: 1px solid #d7deea;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+#game-screen .game-table .card {
+  border-radius: 20px;
+  border-width: 3px;
+  box-shadow: 0 12px 22px rgba(76, 87, 106, 0.24);
+}
+
+#game-screen .game-table .card::before {
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.1) 36%,
+      transparent 55%,
+      rgba(0, 0, 0, 0.08) 100%);
+}
+
+#game-screen .game-table .card-red {
+  background: linear-gradient(160deg, #ff7783 0%, #e63946 60%, #c92d3a 100%);
+}
+
+#game-screen .game-table .card-blue {
+  background: linear-gradient(160deg, #79b8ff 0%, #2f77c7 60%, #1f5da6 100%);
+}
+
+#game-screen .game-table .card-green {
+  background: linear-gradient(160deg, #73db96 0%, #31aa5b 60%, #1f8644 100%);
+}
+
+#game-screen .game-table .card-yellow {
+  background: linear-gradient(160deg, #ffe995 0%, #f5c84a 60%, #dc9f1e 100%);
+}
+
+#game-screen .game-table .card-yellow .card-value {
+  color: #7a5000;
+}
+
+#game-screen .game-table .card-wild {
+  background: conic-gradient(
+    from 130deg,
+    #e63946 0deg 90deg,
+    #2f77c7 90deg 180deg,
+    #31aa5b 180deg 270deg,
+    #f5c84a 270deg 360deg
+  );
+}
+
+#game-screen .game-table .card-back {
+  background: linear-gradient(160deg, #e74a5d 0%, #c62839 100%);
+}
+
+#game-screen #player-hand {
+  padding: 34px 10px 10px;
+  min-height: 122px;
+}
+
+#game-screen .hand-card.playable:hover,
+#game-screen .hand-card.playable:active {
+  transform: scale(1.2) translateY(-6px) !important;
+  box-shadow:
+    0 14px 24px rgba(75, 88, 109, 0.24),
+    0 0 0 3px rgba(255, 202, 80, 0.55);
+}
+
+#game-screen #last-card-btn {
+  top: -10px;
+  background: linear-gradient(180deg, #ef4060 0%, #ce2f4a 100%);
+  border: 2px solid #fff;
+  box-shadow:
+    0 7px 0 #efb400,
+    0 13px 22px rgba(126, 46, 57, 0.32);
+  letter-spacing: 0.4px;
+}
+
+#game-screen #restart-btn {
+  top: 10px;
+  left: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f2f5fa 100%);
+  color: #5f6a7b;
+  border: 1px solid #d5ddea;
+  box-shadow: 0 8px 14px rgba(84, 97, 116, 0.14);
+}
+
+@media (max-width: 600px) {
+  #game-screen .game-table {
+    grid-template-columns: 58px 1fr 58px;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  #game-screen .center-area::before {
+    width: min(62vw, 250px);
+    border-width: 2px;
+  }
+
+  #game-screen #draw-pile,
+  #game-screen #discard-pile,
+  #game-screen #discard-pile::before,
+  #game-screen #discard-pile::after,
+  #game-screen #discard-pile .card,
+  #game-screen .game-table .card,
+  #game-screen .hand-card {
+    width: 68px;
+    height: 102px;
+  }
+
+  #game-screen #draw-pile {
+    border-radius: 18px;
+  }
+
+  #game-screen #draw-pile::after {
+    font-size: 28px;
+  }
+
+  #game-screen #discard-pile::before,
+  #game-screen #discard-pile::after {
+    border-radius: 14px;
+  }
+
+  #game-screen .turn-message {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+
+  #game-screen .direction-indicator {
+    font-size: 22px;
+  }
+
+  #game-screen #player-hand {
+    min-height: 98px;
+    padding: 26px 8px 8px;
+  }
+
+  #game-screen #last-card-btn {
+    font-size: 16px;
+    padding: 6px 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  #game-screen .game-table {
+    grid-template-columns: 46px 1fr 46px;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  #game-screen #draw-pile,
+  #game-screen #discard-pile,
+  #game-screen #discard-pile::before,
+  #game-screen #discard-pile::after,
+  #game-screen #discard-pile .card,
+  #game-screen .game-table .card,
+  #game-screen .hand-card {
+    width: 58px;
+    height: 87px;
+  }
+
+  #game-screen #draw-pile::after {
+    font-size: 24px;
+  }
+}
+
+/* Landscape short screens */
+@media (max-height: 500px) and (orientation: landscape) {
+  #game-screen .game-table {
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 50px 1fr 50px;
+  }
+
+  #game-screen .bot-name {
+    font-size: 10px;
+    padding: 3px 6px;
+    margin-bottom: 2px;
+  }
+
+  #game-screen .bot-card-back {
+    width: 24px;
+    height: 36px;
+    border-radius: 6px;
+    font-size: 4px;
+  }
+
+  #game-screen .bot-left .bot-card-back,
+  #game-screen .bot-right .bot-card-back {
+    margin: -5px 0;
+  }
+
+  #game-screen .bot-top .bot-card-back {
+    margin: 0 -5px;
+  }
+
+  #game-screen .bot-count {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
+  }
+
+  #game-screen .center-area {
+    gap: 12px;
+  }
+
+  #game-screen .center-area::before {
+    width: min(30vh, 180px);
+  }
+
+  #game-screen #draw-pile,
+  #game-screen #discard-pile,
+  #game-screen #discard-pile::before,
+  #game-screen #discard-pile::after,
+  #game-screen #discard-pile .card,
+  #game-screen .game-table .card,
+  #game-screen .hand-card {
+    width: 48px;
+    height: 72px;
+  }
+
+  #game-screen #draw-pile {
+    border-radius: 14px;
+  }
+
+  #game-screen #draw-pile::after {
+    font-size: 20px;
+  }
+
+  #game-screen #discard-pile::before,
+  #game-screen #discard-pile::after {
+    width: 48px;
+    height: 72px;
+    border-radius: 12px;
+  }
+
+  #game-screen #player-hand {
+    min-height: 68px;
+    padding: 16px 6px 4px;
+  }
+
+  #game-screen .card-value {
+    font-size: 24px;
+  }
+
+  #game-screen .card-corner {
+    font-size: 8px;
+  }
+
+  #game-screen .turn-message {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  #game-screen .direction-indicator {
+    font-size: 18px;
+  }
+
+  #game-screen #restart-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
   }
 }

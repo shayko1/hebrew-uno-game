@@ -141,27 +141,28 @@ export function renderPlayerHand(state, onCardClick) {
     el.classList.add('hand-card');
 
     const playable = isMyTurn && canPlayCard(card, topCard, state.currentColor);
+    const colorName = card.color === 'wild' ? 'ג\'וקר' :
+      ({ red: 'אדום', blue: 'כחול', green: 'ירוק', yellow: 'צהוב' }[card.color] || card.color);
+    const valueName = card.type === 'number' ? String(card.value) :
+      ({ skip: 'דילוג', reverse: 'הפוך', draw_two: 'פלוס 2', wild: 'ג\'וקר', wild_draw_four: 'פלוס 4' }[card.value] || '');
+    el.setAttribute('aria-label', colorName + ' ' + valueName);
+    el.setAttribute('role', 'button');
+
     if (playable) {
       el.classList.add('playable');
-      el.addEventListener('click', () => onCardClick(card));
-    } else {
-      el.classList.add('not-playable');
-      el.setAttribute('aria-disabled', 'true');
-    }
-
       el.setAttribute('tabindex', '0');
-      el.setAttribute('role', 'button');
-      const colorName = card.color === 'wild' ? 'ג\'וקר' :
-        ({ red: 'אדום', blue: 'כחול', green: 'ירוק', yellow: 'צהוב' }[card.color] || card.color);
-      const valueName = card.type === 'number' ? String(card.value) :
-        ({ skip: 'דילוג', reverse: 'הפוך', draw_two: 'פלוס 2', wild: 'ג\'וקר', wild_draw_four: 'פלוס 4' }[card.value] || '');
-      el.setAttribute('aria-label', colorName + ' ' + valueName);
+      el.addEventListener('click', () => onCardClick(card));
       el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onCardClick(card);
         }
       });
+    } else {
+      el.classList.add('not-playable');
+      el.setAttribute('tabindex', '-1');
+      el.setAttribute('aria-disabled', 'true');
+    }
 
     if (i > 0) {
       el.style.marginLeft = -overlap + 'px';
@@ -405,21 +406,62 @@ export function showLastCardPopup() {
 }
 
 let hideTimer = null;
+let _pickerTrapHandler = null;
+let _pickerPreviousFocus = null;
 
 export function showColorPicker() {
   const picker = document.getElementById('color-picker');
-  if (picker) {
-    clearTimeout(hideTimer);
-    picker.classList.remove('hidden', 'visible');
-    requestAnimationFrame(() => picker.classList.add('visible'));
-  }
+  if (!picker) return;
+
+  _pickerPreviousFocus = document.activeElement;
+  clearTimeout(hideTimer);
+  picker.classList.remove('hidden', 'visible');
+  requestAnimationFrame(() => {
+    picker.classList.add('visible');
+    const firstBtn = picker.querySelector('.color-btn');
+    if (firstBtn) firstBtn.focus();
+  });
+
+  // Set background inert
+  const gameScreen = document.getElementById('game-screen');
+  if (gameScreen) gameScreen.setAttribute('inert', '');
+
+  // Focus trap
+  const focusableEls = picker.querySelectorAll('button');
+  _pickerTrapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const first = focusableEls[0];
+    const last = focusableEls[focusableEls.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
+  picker.addEventListener('keydown', _pickerTrapHandler);
 }
 
 export function hideColorPicker() {
   const picker = document.getElementById('color-picker');
-  if (picker) {
-    picker.classList.remove('visible');
-    hideTimer = setTimeout(() => picker.classList.add('hidden'), 200);
+  if (!picker) return;
+
+  picker.classList.remove('visible');
+  hideTimer = setTimeout(() => picker.classList.add('hidden'), 200);
+
+  // Remove focus trap
+  if (_pickerTrapHandler) {
+    picker.removeEventListener('keydown', _pickerTrapHandler);
+    _pickerTrapHandler = null;
+  }
+
+  // Remove inert
+  const gameScreen = document.getElementById('game-screen');
+  if (gameScreen) gameScreen.removeAttribute('inert');
+
+  // Restore focus
+  if (_pickerPreviousFocus && _pickerPreviousFocus.focus) {
+    _pickerPreviousFocus.focus();
+    _pickerPreviousFocus = null;
   }
 }
 

@@ -6,6 +6,7 @@ import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard, flyFli
 import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundLastCard, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
 import { recordGame, renderStatsOverlay } from './stats.js';
+import { saveSnapshot, loadSnapshot, clearSnapshot, savePlayerCount, loadPlayerCount } from './persistence.js';
 
 let state = null;
 let botTurnTimeout = null;
@@ -13,11 +14,32 @@ let selectedPlayerCount = 4;
 let turnCount = 0;
 let animating = false;
 
+function persistState() {
+  saveSnapshot(state);
+}
+
 function init() {
   initAudio();
   initPWA();
-  showScreen('welcome-screen');
   renderWelcomeDecorations();
+
+  // Restore player count preference
+  const savedCount = loadPlayerCount();
+  if (savedCount) {
+    selectedPlayerCount = savedCount;
+    document.querySelectorAll('.player-count-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.count, 10) === savedCount);
+    });
+  }
+
+  // Check for saved game to resume
+  const savedState = loadSnapshot();
+  if (savedState && !savedState.gameOver) {
+    showResumePrompt(savedState);
+  } else {
+    clearSnapshot();
+    showScreen('welcome-screen');
+  }
 
   document.getElementById('start-btn').addEventListener('click', startGame);
   document.getElementById('play-again-btn').addEventListener('click', startGame);
@@ -30,6 +52,7 @@ function init() {
   document.querySelectorAll('.player-count-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedPlayerCount = parseInt(btn.dataset.count, 10);
+      savePlayerCount(selectedPlayerCount);
       document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
@@ -40,12 +63,83 @@ function init() {
     btn.addEventListener('click', () => handleColorChoice(btn.dataset.color));
   });
 
+  document.getElementById('color-picker-cancel').addEventListener('click', cancelColorPick);
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && state && state.pendingAction && state.pendingAction.type === 'colorPick') {
-      state.pendingAction = null;
-      hideColorPicker();
+      cancelColorPick();
     }
   });
+
+  // Lifecycle autosave
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && state) persistState();
+  });
+  window.addEventListener('pagehide', () => {
+    if (state) persistState();
+  });
+}
+
+function showResumePrompt(savedState) {
+  showScreen('welcome-screen');
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay resume-overlay';
+  overlay.innerHTML = '';
+
+  const box = document.createElement('div');
+  box.className = 'resume-prompt';
+
+  const title = document.createElement('h2');
+  title.textContent = 'יש משחק שמור';
+  box.appendChild(title);
+
+  const subtitle = document.createElement('p');
+  subtitle.textContent = 'רוצה להמשיך מאיפה שעצרת?';
+  box.appendChild(subtitle);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'resume-buttons';
+
+  const resumeBtn = document.createElement('button');
+  resumeBtn.className = 'btn btn-primary';
+  resumeBtn.textContent = 'המשך משחק';
+  resumeBtn.addEventListener('click', () => {
+    overlay.remove();
+    resumeGame(savedState);
+  });
+  btnRow.appendChild(resumeBtn);
+
+  const newBtn = document.createElement('button');
+  newBtn.className = 'btn btn-secondary';
+  newBtn.textContent = 'משחק חדש';
+  newBtn.addEventListener('click', () => {
+    overlay.remove();
+    clearSnapshot();
+  });
+  btnRow.appendChild(newBtn);
+
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function resumeGame(savedState) {
+  state = savedState;
+  turnCount = 0;
+  showScreen('game-screen');
+  renderGame(state, handleCardClick);
+
+  if (state.pendingAction) {
+    showColorPicker();
+  } else if (state.currentPlayer !== 0) {
+    scheduleBotTurn();
+  }
+}
+
+function cancelColorPick() {
+  if (!state || !state.pendingAction || state.pendingAction.type !== 'colorPick') return;
+  state.pendingAction = null;
+  hideColorPicker();
 }
 
 function handleRestart() {
@@ -60,10 +154,13 @@ function startGame() {
     botTurnTimeout = null;
   }
   animating = false;
+  clearSnapshot();
   state = createGameState(selectedPlayerCount);
+  state.hasDrawnThisTurn = false;
   turnCount = 0;
   showScreen('game-screen');
   renderGame(state, handleCardClick);
+  persistState();
 
   // If first player isn't human, start bot turns
   if (state.currentPlayer !== 0) {
@@ -98,6 +195,7 @@ async function handleCardClick(card) {
   // Wild card: show color picker first
   if (card.color === 'wild') {
     state.pendingAction = { type: 'colorPick', card };
+    persistState();
     showColorPicker();
     return;
   }
@@ -107,6 +205,8 @@ async function handleCardClick(card) {
 
   const success = playCard(state, 0, card.id);
   if (!success) return;
+
+  state.hasDrawnThisTurn = false;
 
   // Animate card flight to discard pile
   animating = true;
@@ -143,6 +243,7 @@ async function handleColorChoice(color) {
   hideColorPicker();
 
   playCard(state, 0, card.id, color);
+  state.hasDrawnThisTurn = false;
 
   animating = true;
   try {
@@ -173,9 +274,20 @@ async function handleDrawPile() {
   if (state.pendingAction) return;
   if (animating) return;
 
+  // One draw per turn — block additional draws
+  if (state.hasDrawnThisTurn) {
+    // Already drew — pass turn
+    showToast('כבר שלפת, תורך עבר');
+    state.hasDrawnThisTurn = false;
+    state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
+    afterTurnEnd();
+    return;
+  }
+
   const drawn = drawCards(state, 0, 1);
   if (drawn.length === 0) return;
 
+  state.hasDrawnThisTurn = true;
   const drawnCard = drawn[0];
 
   animating = true;
@@ -194,9 +306,11 @@ async function handleDrawPile() {
   if (playable.length > 0) {
     // Card is playable — re-render so the player can click it
     renderGame(state, handleCardClick);
+    persistState();
   } else {
     // Not playable — advance turn
     showToast('שלפת קלף ועברת...');
+    state.hasDrawnThisTurn = false;
     state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
     afterTurnEnd();
   }
@@ -217,6 +331,9 @@ function afterPlay() {
     return;
   }
 
+  // Reset draw flag for next player's turn
+  state.hasDrawnThisTurn = false;
+  persistState();
   renderGame(state, handleCardClick);
 
   if (state.currentPlayer !== 0) {
@@ -233,6 +350,8 @@ function afterTurnEnd() {
     return;
   }
 
+  state.hasDrawnThisTurn = false;
+  persistState();
   renderGame(state, handleCardClick);
 
   if (state.currentPlayer !== 0) {
@@ -354,6 +473,7 @@ async function executeBotTurn() {
 }
 
 function endGame() {
+  clearSnapshot();
   recordGame(state.winner === 0, state.numPlayers, turnCount);
   if (state.winner === 0) {
     soundWin();

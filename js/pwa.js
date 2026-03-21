@@ -78,6 +78,9 @@ function showUpdateBanner() {
   updateBtn.classList.add('update-btn');
   updateBtn.textContent = 'רענן';
   updateBtn.addEventListener('click', () => {
+    // Persistence module saves on visibilitychange/pagehide, but
+    // explicitly dispatch pagehide to ensure save before reload
+    window.dispatchEvent(new Event('pagehide'));
     window.location.reload();
   });
   banner.appendChild(updateBtn);
