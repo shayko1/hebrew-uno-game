@@ -123,18 +123,29 @@ export function renderPlayerHand(state, onCardClick) {
   const isMobile = window.innerWidth < 600;
   const cardW = isMobile ? 68 : 88;
 
-  // Calculate overlap: always show at least 30px of each card
+  // Calculate overlap: always show at least minVisible px of each card
   const minVisible = isMobile ? 26 : 34;
-  const maxVisible = cardW * 0.65;
   const availableW = window.innerWidth * 0.94;
+
+  // Scale down cards for very large hands (12+)
+  let cardScale = 1;
+  if (count > 12) {
+    cardScale = Math.max(0.75, 1 - (count - 12) * 0.025);
+  }
+  const effectiveCardW = cardW * cardScale;
 
   let visiblePerCard;
   if (count <= 1) {
-    visiblePerCard = cardW;
+    visiblePerCard = effectiveCardW;
   } else {
-    visiblePerCard = Math.min(maxVisible, Math.max(minVisible, (availableW - cardW) / (count - 1)));
+    visiblePerCard = Math.min(effectiveCardW * 0.65, Math.max(minVisible, (availableW - effectiveCardW) / (count - 1)));
   }
-  const overlap = cardW - visiblePerCard;
+  const overlap = effectiveCardW - visiblePerCard;
+
+  // Fan arc parameters — subtle, not extreme
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const maxRotation = reducedMotion || count <= 1 ? 0 : (count <= 4 ? 3 : Math.min(8, 2 + count * 0.5));
+  const maxLift = reducedMotion || count <= 1 ? 0 : (count <= 4 ? 2 : Math.min(12, count * 0.8));
 
   hand.forEach((card, i) => {
     const el = createCardElement(card, true);
@@ -164,10 +175,17 @@ export function renderPlayerHand(state, onCardClick) {
       el.setAttribute('aria-disabled', 'true');
     }
 
+    // Fan arc: rotation and Y offset
+    const normalizedPos = count <= 1 ? 0 : (i / (count - 1)) * 2 - 1; // -1 to 1
+    const rotation = normalizedPos * maxRotation;
+    const lift = count <= 1 ? 0 : -maxLift * (1 - normalizedPos * normalizedPos);
+
     if (i > 0) {
       el.style.marginLeft = -overlap + 'px';
     }
     el.style.zIndex = i;
+    el.style.transform = `rotate(${rotation}deg) translateY(${lift}px) scale(${cardScale})`;
+    el.style.transformOrigin = 'center bottom';
 
     container.appendChild(el);
   });
