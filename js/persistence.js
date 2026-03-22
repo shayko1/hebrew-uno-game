@@ -5,6 +5,9 @@
 
 const STORAGE_KEY = 'tsivoni_game_snapshot';
 const PLAYER_COUNT_KEY = 'tsivoni_player_count';
+const GAME_MODE_KEY = 'tsivoni_game_mode';
+const MATCH_MODE_KEY = 'tsivoni_match_mode';
+const NICKNAME_KEY = 'tsivoni_nickname';
 const SCHEMA_VERSION = 1;
 
 /**
@@ -25,7 +28,14 @@ function serialize(state) {
     winner: state.winner,
     lastCardCalledBy: [...state.lastCardCalledBy],
     pendingCardId: state.pendingAction ? state.pendingAction.card.id : null,
-    hasDrawnThisTurn: state.hasDrawnThisTurn || false
+    hasDrawnThisTurn: state.hasDrawnThisTurn || false,
+    gameMode: state.gameMode || 'local',
+    matchMode: state.matchMode || 'single',
+    targetScore: state.targetScore || 250,
+    matchScores: Array.isArray(state.matchScores) ? state.matchScores : null,
+    roundNumber: state.roundNumber || 1,
+    roomCode: state.roomCode || null,
+    nickname: state.nickname || ''
   };
 }
 
@@ -52,8 +62,24 @@ function deserialize(snapshot) {
       winner: snapshot.winner ?? null,
       lastCardCalledBy: new Set(snapshot.lastCardCalledBy || []),
       pendingAction: null,
-      hasDrawnThisTurn: snapshot.hasDrawnThisTurn || false
+      hasDrawnThisTurn: snapshot.hasDrawnThisTurn || false,
+      gameMode: snapshot.gameMode === 'online' ? 'online' : 'local',
+      matchMode: snapshot.matchMode === 'points' ? 'points' : 'single',
+      targetScore: (typeof snapshot.targetScore === 'number' && snapshot.targetScore > 0) ? snapshot.targetScore : 250,
+      matchScores: null,
+      roundNumber: (Number.isInteger(snapshot.roundNumber) && snapshot.roundNumber > 0) ? snapshot.roundNumber : 1,
+      roomCode: typeof snapshot.roomCode === 'string' ? snapshot.roomCode : null,
+      nickname: typeof snapshot.nickname === 'string' ? snapshot.nickname : ''
     };
+
+    if (Array.isArray(snapshot.matchScores) && snapshot.matchScores.length === state.numPlayers) {
+      state.matchScores = snapshot.matchScores.map(score => {
+        if (typeof score !== 'number' || score < 0) return 0;
+        return Math.floor(score);
+      });
+    } else {
+      state.matchScores = Array(state.numPlayers).fill(0);
+    }
 
     // Reconstruct pendingAction if a wild card was pending
     if (snapshot.pendingCardId != null) {
@@ -137,5 +163,80 @@ export function loadPlayerCount() {
     return (num >= 2 && num <= 4) ? num : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Save selected game mode.
+ */
+export function saveGameMode(mode) {
+  try {
+    if (mode !== 'local' && mode !== 'online') return;
+    localStorage.setItem(GAME_MODE_KEY, mode);
+  } catch {
+    // silent
+  }
+}
+
+/**
+ * Load selected game mode.
+ */
+export function loadGameMode() {
+  try {
+    const mode = localStorage.getItem(GAME_MODE_KEY);
+    if (mode === 'local' || mode === 'online') return mode;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save selected match mode.
+ */
+export function saveMatchMode(mode) {
+  try {
+    if (mode !== 'single' && mode !== 'points') return;
+    localStorage.setItem(MATCH_MODE_KEY, mode);
+  } catch {
+    // silent
+  }
+}
+
+/**
+ * Load selected match mode.
+ */
+export function loadMatchMode() {
+  try {
+    const mode = localStorage.getItem(MATCH_MODE_KEY);
+    if (mode === 'single' || mode === 'points') return mode;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save online nickname.
+ */
+export function saveNickname(nickname) {
+  try {
+    if (typeof nickname !== 'string') return;
+    localStorage.setItem(NICKNAME_KEY, nickname.trim());
+  } catch {
+    // silent
+  }
+}
+
+/**
+ * Load online nickname.
+ */
+export function loadNickname() {
+  try {
+    const nickname = localStorage.getItem(NICKNAME_KEY);
+    if (nickname == null) return '';
+    return String(nickname).trim().slice(0, 20);
+  } catch {
+    return '';
   }
 }

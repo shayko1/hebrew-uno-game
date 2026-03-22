@@ -3,19 +3,312 @@ import { createGameState, getTopCard, playCard, drawCards, getPlayableCards, nex
 import { renderGame, showScreen, showLastCardPopup, showColorPicker, hideColorPicker, showEndScreen, renderWelcomeDecorations, showToast, announce } from './ui.js';
 import { botChooseCard, botChooseColor } from './bot.js';
 import { showConfetti, showActionFeedback, animateCardToDiscard, flyCard, flyFlipCard, flyCardBack } from './animations.js';
-import { initAudio, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundLastCard, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
+import { initAudio, toggleMute, isMuted, soundCardPlay, soundCardDraw, soundSkip, soundReverse, soundDrawTwo, soundWild, soundLastCard, soundWin, soundLose, soundBotPlay, soundYourTurn } from './sounds.js';
 import { initPWA } from './pwa.js';
 import { recordGame, renderStatsOverlay } from './stats.js';
-import { saveSnapshot, loadSnapshot, clearSnapshot, savePlayerCount, loadPlayerCount } from './persistence.js';
+import {
+  saveSnapshot,
+  loadSnapshot,
+  clearSnapshot,
+  savePlayerCount,
+  loadPlayerCount,
+  saveGameMode,
+  loadGameMode,
+  saveMatchMode,
+  loadMatchMode,
+  saveNickname,
+  loadNickname
+} from './persistence.js';
+
+const DEFAULT_TARGET_SCORE = 250;
+const ROOM_STORAGE_PREFIX = 'tsivoni_room_';
+const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
 let state = null;
 let botTurnTimeout = null;
+let quickMatchTimeout = null;
 let selectedPlayerCount = 4;
+let selectedGameMode = 'local';
+let selectedMatchMode = 'single';
+let selectedNickname = '';
+let pendingRoomCode = null;
 let turnCount = 0;
 let animating = false;
 
+function syncMuteButton(btn) {
+  if (!btn) return;
+  const m = isMuted();
+  btn.textContent = m ? '\u{1F507}' : '\u{1F50A}';
+  btn.setAttribute('aria-label', m ? 'הפעל צלילים' : 'השתק צלילים');
+  btn.classList.toggle('muted', m);
+}
+
+function clearBotTurnTimer() {
+  if (botTurnTimeout !== null) {
+    clearTimeout(botTurnTimeout);
+    botTurnTimeout = null;
+  }
+}
+
+function clearOnlineTimers() {
+  if (quickMatchTimeout !== null) {
+    clearTimeout(quickMatchTimeout);
+    quickMatchTimeout = null;
+  }
+}
+
 function persistState() {
   saveSnapshot(state);
+}
+
+function normalizeRoomCode(code) {
+  if (typeof code !== 'string') return '';
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+}
+
+function generateRoomCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return code;
+}
+
+function saveRoomMeta(code, hostNickname) {
+  const normalizedCode = normalizeRoomCode(code);
+  if (!normalizedCode) return;
+
+  const roomData = {
+    code: normalizedCode,
+    host: (hostNickname || '').trim().slice(0, 20),
+    createdAt: Date.now()
+  };
+
+  try {
+    localStorage.setItem(ROOM_STORAGE_PREFIX + normalizedCode, JSON.stringify(roomData));
+  } catch {
+    // silent
+  }
+}
+
+function loadRoomMeta(code) {
+  const normalizedCode = normalizeRoomCode(code);
+  if (!normalizedCode) return null;
+
+  try {
+    const raw = localStorage.getItem(ROOM_STORAGE_PREFIX + normalizedCode);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.code !== normalizedCode || typeof parsed.createdAt !== 'number') {
+      return null;
+    }
+
+    if (Date.now() - parsed.createdAt > ROOM_TTL_MS) {
+      localStorage.removeItem(ROOM_STORAGE_PREFIX + normalizedCode);
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function setOnlineStatus(message, tone = '') {
+  const statusEl = document.getElementById('online-status');
+  if (!statusEl) return;
+  statusEl.textContent = message || '';
+  statusEl.classList.remove('warn', 'error', 'success');
+  if (tone) {
+    statusEl.classList.add(tone);
+  }
+}
+
+function readNickname() {
+  const input = document.getElementById('nickname-input');
+  const fromInput = input ? input.value : '';
+  const nickname = (fromInput || selectedNickname || '').trim().slice(0, 20);
+
+  if (input) {
+    input.value = nickname;
+  }
+
+  selectedNickname = nickname;
+  saveNickname(nickname);
+  return nickname;
+}
+
+function toggleOnlineControls(disabled) {
+  ['quick-match-btn', 'create-room-btn', 'join-room-btn'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = disabled;
+  });
+}
+
+function syncWelcomeControls() {
+  const onlinePanel = document.getElementById('online-panel');
+  const startBtn = document.getElementById('start-btn');
+
+  document.querySelectorAll('.player-count-btn').forEach((btn) => {
+    btn.classList.toggle('active', parseInt(btn.dataset.count, 10) === selectedPlayerCount);
+  });
+
+  document.querySelectorAll('.game-mode-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.mode === selectedGameMode);
+  });
+
+  document.querySelectorAll('.match-mode-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.matchMode === selectedMatchMode);
+  });
+
+  if (onlinePanel) {
+    if (selectedGameMode === 'online') {
+      onlinePanel.classList.remove('hidden');
+    } else {
+      onlinePanel.classList.add('hidden');
+    }
+  }
+
+  if (startBtn) {
+    startBtn.textContent = selectedGameMode === 'online' ? 'התאמה מהירה' : 'בואו נשחק!';
+    startBtn.setAttribute('aria-label', selectedGameMode === 'online' ? 'התאמה מהירה' : 'התחל משחק');
+  }
+
+  const nicknameInput = document.getElementById('nickname-input');
+  if (nicknameInput && !nicknameInput.value && selectedNickname) {
+    nicknameInput.value = selectedNickname;
+  }
+
+  if (pendingRoomCode) {
+    const roomCodeInput = document.getElementById('room-code-input');
+    if (roomCodeInput) {
+      roomCodeInput.value = pendingRoomCode;
+    }
+  }
+}
+
+function clearChildren(el) {
+  if (!el) return;
+  while (el.firstChild) {
+    el.removeChild(el.firstChild);
+  }
+}
+
+function renderSessionBanner() {
+  const banner = document.getElementById('session-banner');
+  if (!banner) return;
+
+  if (!state) {
+    banner.textContent = '';
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const parts = [];
+  if (state.gameMode === 'online') {
+    parts.push(state.roomCode ? 'אונליין • חדר ' + state.roomCode : 'אונליין • התאמה מהירה');
+  } else {
+    parts.push('מקומי');
+  }
+
+  if (state.matchMode === 'points') {
+    const scores = state.matchScores.map((score, index) => PLAYER_NAMES[index] + ' ' + score).join(' | ');
+    parts.push('סיבוב ' + state.roundNumber);
+    parts.push('יעד ' + state.targetScore);
+    parts.push(scores);
+  } else {
+    parts.push('סיבוב יחיד');
+  }
+
+  banner.textContent = parts.join('  •  ');
+  banner.classList.remove('hidden');
+}
+
+function renderCurrentGame() {
+  renderGame(state, handleCardClick);
+  renderSessionBanner();
+}
+
+function getCardScore(card) {
+  if (!card) return 0;
+  if (card.type === 'number') {
+    return Number(card.value) || 0;
+  }
+
+  if (card.value === SPECIAL_TYPES.WILD || card.value === SPECIAL_TYPES.WILD_DRAW_FOUR) {
+    return 50;
+  }
+
+  return 20;
+}
+
+function getRoundPoints(winnerIndex) {
+  if (!state || typeof winnerIndex !== 'number') return 0;
+
+  let points = 0;
+  for (let i = 0; i < state.hands.length; i++) {
+    if (i === winnerIndex) continue;
+    for (let j = 0; j < state.hands[i].length; j++) {
+      points += getCardScore(state.hands[i][j]);
+    }
+  }
+
+  return points;
+}
+
+function renderEndScoreboard(roundPoints, matchComplete) {
+  const board = document.getElementById('end-scoreboard');
+  if (!board) return;
+
+  clearChildren(board);
+
+  if (!state || state.matchMode !== 'points') {
+    return;
+  }
+
+  const title = document.createElement('div');
+  title.className = 'end-score-title';
+  if (matchComplete) {
+    title.textContent = 'סיכום משחק נקודות • יעד ' + state.targetScore;
+  } else {
+    const winnerName = PLAYER_NAMES[state.winner] || 'שחקן';
+    title.textContent = 'סיבוב ' + state.roundNumber + ' • +' + roundPoints + ' נק\' ל' + winnerName;
+  }
+  board.appendChild(title);
+
+  state.matchScores.forEach((score, index) => {
+    const row = document.createElement('div');
+    row.className = 'end-score-row';
+
+    if (matchComplete && state.matchWinner === index) {
+      row.classList.add('active');
+    }
+
+    const name = document.createElement('span');
+    name.textContent = PLAYER_NAMES[index] || ('שחקן ' + (index + 1));
+
+    const value = document.createElement('span');
+    value.textContent = String(score);
+
+    row.appendChild(name);
+    row.appendChild(value);
+    board.appendChild(row);
+  });
+}
+
+function updateEndButtons(matchComplete) {
+  const playAgainBtn = document.getElementById('play-again-btn');
+  if (!playAgainBtn) return;
+
+  let label = 'שחק שוב';
+  if (state && state.matchMode === 'points') {
+    label = matchComplete ? 'משחק חדש' : 'סיבוב הבא';
+  }
+
+  playAgainBtn.textContent = label;
+  playAgainBtn.setAttribute('aria-label', label);
 }
 
 function init() {
@@ -23,16 +316,24 @@ function init() {
   initPWA();
   renderWelcomeDecorations();
 
-  // Restore player count preference
   const savedCount = loadPlayerCount();
   if (savedCount) {
     selectedPlayerCount = savedCount;
-    document.querySelectorAll('.player-count-btn').forEach(b => {
-      b.classList.toggle('active', parseInt(b.dataset.count, 10) === savedCount);
-    });
   }
 
-  // Check for saved game to resume
+  const savedGameMode = loadGameMode();
+  if (savedGameMode) {
+    selectedGameMode = savedGameMode;
+  }
+
+  const savedMatchMode = loadMatchMode();
+  if (savedMatchMode) {
+    selectedMatchMode = savedMatchMode;
+  }
+
+  selectedNickname = loadNickname();
+  syncWelcomeControls();
+
   const savedState = loadSnapshot();
   if (savedState && !savedState.gameOver) {
     showResumePrompt(savedState);
@@ -41,35 +342,122 @@ function init() {
     showScreen('welcome-screen');
   }
 
-  document.getElementById('start-btn').addEventListener('click', startGame);
-  document.getElementById('play-again-btn').addEventListener('click', startGame);
-  document.getElementById('restart-btn').addEventListener('click', handleRestart);
-  document.getElementById('draw-pile').addEventListener('click', handleDrawPile);
-  document.getElementById('last-card-btn').addEventListener('click', handleLastCardCall);
-  document.getElementById('stats-btn').addEventListener('click', () => renderStatsOverlay());
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) startBtn.addEventListener('click', handleStartButton);
+
+  const playAgainBtn = document.getElementById('play-again-btn');
+  if (playAgainBtn) playAgainBtn.addEventListener('click', handlePlayAgain);
+
+  const backToMenuBtn = document.getElementById('back-to-menu-btn');
+  if (backToMenuBtn) backToMenuBtn.addEventListener('click', backToMenu);
+
+  const restartBtn = document.getElementById('restart-btn');
+  if (restartBtn) restartBtn.addEventListener('click', handleRestart);
+
+  const drawPile = document.getElementById('draw-pile');
+  if (drawPile) drawPile.addEventListener('click', handleDrawPile);
+
+  const lastCardBtn = document.getElementById('last-card-btn');
+  if (lastCardBtn) lastCardBtn.addEventListener('click', handleLastCardCall);
+
+  const statsBtn = document.getElementById('stats-btn');
+  if (statsBtn) statsBtn.addEventListener('click', () => renderStatsOverlay());
+
+  const quickMatchBtn = document.getElementById('quick-match-btn');
+  if (quickMatchBtn) quickMatchBtn.addEventListener('click', handleQuickMatch);
+
+  const createRoomBtn = document.getElementById('create-room-btn');
+  if (createRoomBtn) createRoomBtn.addEventListener('click', handleCreateRoom);
+
+  const joinRoomBtn = document.getElementById('join-room-btn');
+  if (joinRoomBtn) joinRoomBtn.addEventListener('click', handleJoinRoom);
+
+  document.querySelectorAll('.game-mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode === 'online' ? 'online' : 'local';
+      selectedGameMode = mode;
+      saveGameMode(mode);
+
+      if (mode === 'local') {
+        pendingRoomCode = null;
+        setOnlineStatus('');
+      }
+
+      syncWelcomeControls();
+    });
+  });
+
+  document.querySelectorAll('.match-mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.matchMode === 'points' ? 'points' : 'single';
+      selectedMatchMode = mode;
+      saveMatchMode(mode);
+      syncWelcomeControls();
+    });
+  });
+
+  // Mute buttons
+  const muteBtn = document.getElementById('mute-btn');
+  const welcomeMuteBtn = document.getElementById('welcome-mute-btn');
+  syncMuteButton(muteBtn);
+  syncMuteButton(welcomeMuteBtn);
+  muteBtn.addEventListener('click', () => {
+    toggleMute();
+    syncMuteButton(muteBtn);
+    syncMuteButton(welcomeMuteBtn);
+  });
+  welcomeMuteBtn.addEventListener('click', () => {
+    toggleMute();
+    syncMuteButton(muteBtn);
+    syncMuteButton(welcomeMuteBtn);
+  });
+
+  // Restart confirmation buttons
+  document.getElementById('restart-confirm-yes').addEventListener('click', confirmRestart);
+  document.getElementById('restart-confirm-no').addEventListener('click', cancelRestart);
 
   // Player count selector
-  document.querySelectorAll('.player-count-btn').forEach(btn => {
+  document.querySelectorAll('.player-count-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       selectedPlayerCount = parseInt(btn.dataset.count, 10);
       savePlayerCount(selectedPlayerCount);
-      document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      syncWelcomeControls();
     });
   });
 
   // Color picker buttons
-  document.querySelectorAll('.color-btn').forEach(btn => {
+  document.querySelectorAll('.color-btn').forEach((btn) => {
     btn.addEventListener('click', () => handleColorChoice(btn.dataset.color));
   });
 
   document.getElementById('color-picker-cancel').addEventListener('click', cancelColorPick);
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && state && state.pendingAction && state.pendingAction.type === 'colorPick') {
-      cancelColorPick();
+    if (e.key === 'Escape') {
+      const restartOverlay = document.getElementById('restart-confirm');
+      if (restartOverlay && restartOverlay.classList.contains('visible')) {
+        cancelRestart();
+        return;
+      }
+      if (state && state.pendingAction && state.pendingAction.type === 'colorPick') {
+        cancelColorPick();
+      }
     }
   });
+
+  const nicknameInput = document.getElementById('nickname-input');
+  if (nicknameInput) {
+    nicknameInput.addEventListener('change', () => {
+      readNickname();
+    });
+  }
+
+  const roomCodeInput = document.getElementById('room-code-input');
+  if (roomCodeInput) {
+    roomCodeInput.addEventListener('input', () => {
+      roomCodeInput.value = normalizeRoomCode(roomCodeInput.value);
+    });
+  }
 
   // Lifecycle autosave
   document.addEventListener('visibilitychange', () => {
@@ -126,8 +514,21 @@ function showResumePrompt(savedState) {
 function resumeGame(savedState) {
   state = savedState;
   turnCount = 0;
+
+  selectedPlayerCount = state.numPlayers || selectedPlayerCount;
+  selectedGameMode = state.gameMode === 'online' ? 'online' : 'local';
+  selectedMatchMode = state.matchMode === 'points' ? 'points' : 'single';
+  selectedNickname = state.nickname || selectedNickname;
+  pendingRoomCode = state.roomCode || null;
+
+  savePlayerCount(selectedPlayerCount);
+  saveGameMode(selectedGameMode);
+  saveMatchMode(selectedMatchMode);
+  saveNickname(selectedNickname);
+  syncWelcomeControls();
+
   showScreen('game-screen');
-  renderGame(state, handleCardClick);
+  renderCurrentGame();
 
   if (state.pendingAction) {
     showColorPicker();
@@ -143,29 +544,282 @@ function cancelColorPick() {
 }
 
 function handleRestart() {
-  if (!state) return;
+  if (!state || state.gameOver) {
+    startGame();
+    showToast('משחק חדש!');
+    return;
+  }
+  showRestartConfirm();
+}
+
+function showRestartConfirm() {
+  const overlay = document.getElementById('restart-confirm');
+  overlay.classList.remove('hidden');
+  void overlay.offsetWidth;
+  overlay.classList.add('visible');
+}
+
+function hideRestartConfirm() {
+  const overlay = document.getElementById('restart-confirm');
+  overlay.classList.remove('visible');
+  overlay.addEventListener('transitionend', function handler() {
+    overlay.removeEventListener('transitionend', handler);
+    overlay.classList.add('hidden');
+  });
+}
+
+function confirmRestart() {
+  hideRestartConfirm();
   startGame();
   showToast('משחק חדש!');
 }
 
-function startGame() {
-  if (botTurnTimeout !== null) {
-    clearTimeout(botTurnTimeout);
-    botTurnTimeout = null;
+function cancelRestart() {
+  hideRestartConfirm();
+}
+
+function handleStartButton() {
+  if (selectedGameMode === 'online') {
+    handleQuickMatch();
+    return;
   }
+
+  startGame();
+}
+
+function handleQuickMatch() {
+  if (selectedGameMode !== 'online') {
+    selectedGameMode = 'online';
+    saveGameMode(selectedGameMode);
+    syncWelcomeControls();
+  }
+
+  const nickname = readNickname();
+  if (!nickname) {
+    setOnlineStatus('בחר כינוי כדי להתחיל אונליין.', 'warn');
+    return;
+  }
+
+  clearOnlineTimers();
+  pendingRoomCode = null;
+  syncWelcomeControls();
+  setOnlineStatus('מחפש יריב... אם לא נמצא, נתחיל מול בוט.', 'warn');
+  toggleOnlineControls(true);
+
+  const delay = 2400 + Math.random() * 2200;
+  quickMatchTimeout = setTimeout(() => {
+    quickMatchTimeout = null;
+    toggleOnlineControls(false);
+    setOnlineStatus('לא נמצא יריב כרגע. מתחילים מול בוט במצב אונליין.', 'success');
+    startGame({
+      gameMode: 'online',
+      nickname,
+      roomCode: null
+    });
+  }, delay);
+}
+
+function handleCreateRoom() {
+  if (selectedGameMode !== 'online') {
+    selectedGameMode = 'online';
+    saveGameMode(selectedGameMode);
+    syncWelcomeControls();
+  }
+
+  const nickname = readNickname();
+  if (!nickname) {
+    setOnlineStatus('בחר כינוי לפני יצירת חדר.', 'warn');
+    return;
+  }
+
+  clearOnlineTimers();
+
+  const roomCode = generateRoomCode();
+  pendingRoomCode = roomCode;
+  saveRoomMeta(roomCode, nickname);
+
+  const roomCodeInput = document.getElementById('room-code-input');
+  if (roomCodeInput) {
+    roomCodeInput.value = roomCode;
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(roomCode).catch(() => {});
+  }
+
+  setOnlineStatus('החדר נוצר: ' + roomCode + '. כרגע מצב בטא, מתחילים מול בוט.', 'success');
+
+  startGame({
+    gameMode: 'online',
+    nickname,
+    roomCode
+  });
+}
+
+function handleJoinRoom() {
+  if (selectedGameMode !== 'online') {
+    selectedGameMode = 'online';
+    saveGameMode(selectedGameMode);
+    syncWelcomeControls();
+  }
+
+  const nickname = readNickname();
+  if (!nickname) {
+    setOnlineStatus('בחר כינוי לפני הצטרפות לחדר.', 'warn');
+    return;
+  }
+
+  const roomCodeInput = document.getElementById('room-code-input');
+  const requestedCode = roomCodeInput ? normalizeRoomCode(roomCodeInput.value) : '';
+  if (!requestedCode) {
+    setOnlineStatus('צריך להזין קוד חדר.', 'error');
+    return;
+  }
+
+  const room = loadRoomMeta(requestedCode);
+  if (!room) {
+    setOnlineStatus('לא מצאנו חדר עם הקוד הזה.', 'error');
+    return;
+  }
+
+  pendingRoomCode = room.code;
+  if (roomCodeInput) {
+    roomCodeInput.value = room.code;
+  }
+
+  setOnlineStatus('הצטרפת לחדר ' + room.code + '. כרגע מצב בטא, מתחילים מול בוט.', 'success');
+
+  startGame({
+    gameMode: 'online',
+    nickname,
+    roomCode: room.code
+  });
+}
+
+function buildStartOptions(overrides = {}) {
+  const numPlayers = Number.isInteger(overrides.numPlayers) ? overrides.numPlayers : selectedPlayerCount;
+  const gameMode = overrides.gameMode || selectedGameMode;
+  const matchMode = overrides.matchMode || selectedMatchMode;
+  const targetScore = (typeof overrides.targetScore === 'number' && overrides.targetScore > 0)
+    ? Math.floor(overrides.targetScore)
+    : DEFAULT_TARGET_SCORE;
+
+  const nickname = typeof overrides.nickname === 'string'
+    ? overrides.nickname.trim().slice(0, 20)
+    : selectedNickname;
+
+  const roomCode = overrides.roomCode !== undefined
+    ? overrides.roomCode
+    : (gameMode === 'online' ? pendingRoomCode : null);
+
+  let matchScores = overrides.matchScores;
+  if (!Array.isArray(matchScores) || matchScores.length !== numPlayers) {
+    matchScores = Array(numPlayers).fill(0);
+  }
+
+  const roundNumber = (Number.isInteger(overrides.roundNumber) && overrides.roundNumber > 0)
+    ? overrides.roundNumber
+    : 1;
+
+  return {
+    numPlayers,
+    gameMode,
+    matchMode,
+    targetScore,
+    nickname,
+    roomCode,
+    matchScores,
+    roundNumber
+  };
+}
+
+function startGame(overrides = {}) {
+  clearBotTurnTimer();
+  clearOnlineTimers();
+  toggleOnlineControls(false);
   animating = false;
   clearSnapshot();
-  state = createGameState(selectedPlayerCount);
+
+  const options = buildStartOptions(overrides);
+
+  selectedPlayerCount = options.numPlayers;
+  selectedGameMode = options.gameMode;
+  selectedMatchMode = options.matchMode;
+  selectedNickname = options.nickname;
+  pendingRoomCode = options.roomCode || null;
+
+  savePlayerCount(selectedPlayerCount);
+  saveGameMode(selectedGameMode);
+  saveMatchMode(selectedMatchMode);
+  saveNickname(selectedNickname);
+  syncWelcomeControls();
+
+  state = createGameState(options.numPlayers, {
+    gameMode: options.gameMode,
+    matchMode: options.matchMode,
+    targetScore: options.targetScore,
+    matchScores: options.matchScores,
+    roundNumber: options.roundNumber,
+    roomCode: options.roomCode,
+    nickname: options.nickname
+  });
+
   state.hasDrawnThisTurn = false;
   turnCount = 0;
+
   showScreen('game-screen');
-  renderGame(state, handleCardClick);
+  renderCurrentGame();
   persistState();
 
-  // If first player isn't human, start bot turns
   if (state.currentPlayer !== 0) {
     scheduleBotTurn();
   }
+}
+
+function startNextRound() {
+  if (!state) return;
+
+  startGame({
+    numPlayers: state.numPlayers,
+    gameMode: state.gameMode,
+    matchMode: state.matchMode,
+    targetScore: state.targetScore,
+    matchScores: [...state.matchScores],
+    roundNumber: (state.roundNumber || 1) + 1,
+    roomCode: state.roomCode,
+    nickname: state.nickname
+  });
+}
+
+function handlePlayAgain() {
+  if (!state) {
+    startGame();
+    return;
+  }
+
+  if (state.matchMode === 'points' && state.matchWinner == null) {
+    startNextRound();
+    return;
+  }
+
+  startGame({
+    numPlayers: state.numPlayers,
+    gameMode: state.gameMode,
+    matchMode: state.matchMode,
+    targetScore: state.targetScore,
+    roomCode: state.roomCode,
+    nickname: state.nickname
+  });
+}
+
+function backToMenu() {
+  clearBotTurnTimer();
+  clearOnlineTimers();
+  clearSnapshot();
+  state = null;
+  animating = false;
+  showScreen('welcome-screen');
+  syncWelcomeControls();
 }
 
 function playSpecialSound(cardValue) {
@@ -276,7 +930,6 @@ async function handleDrawPile() {
 
   // One draw per turn — block additional draws
   if (state.hasDrawnThisTurn) {
-    // Already drew — pass turn
     showToast('כבר שלפת, תורך עבר');
     state.hasDrawnThisTurn = false;
     state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
@@ -304,11 +957,9 @@ async function handleDrawPile() {
   const playable = getPlayableCards([drawnCard], topCard, state.currentColor);
 
   if (playable.length > 0) {
-    // Card is playable — re-render so the player can click it
-    renderGame(state, handleCardClick);
+    renderCurrentGame();
     persistState();
   } else {
-    // Not playable — advance turn
     showToast('שלפת קלף ועברת...');
     state.hasDrawnThisTurn = false;
     state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
@@ -321,7 +972,7 @@ function handleLastCardCall() {
   state.lastCardCalledBy.add(0);
   soundLastCard();
   showLastCardPopup();
-  renderGame(state, handleCardClick);
+  renderCurrentGame();
 }
 
 function afterPlay() {
@@ -331,10 +982,9 @@ function afterPlay() {
     return;
   }
 
-  // Reset draw flag for next player's turn
   state.hasDrawnThisTurn = false;
   persistState();
-  renderGame(state, handleCardClick);
+  renderCurrentGame();
 
   if (state.currentPlayer !== 0) {
     scheduleBotTurn();
@@ -352,7 +1002,7 @@ function afterTurnEnd() {
 
   state.hasDrawnThisTurn = false;
   persistState();
-  renderGame(state, handleCardClick);
+  renderCurrentGame();
 
   if (state.currentPlayer !== 0) {
     scheduleBotTurn();
@@ -377,7 +1027,7 @@ async function executeBotTurn() {
 
   // Safety: if it's somehow the human's turn, just re-render
   if (botIndex === 0) {
-    renderGame(state, handleCardClick);
+    renderCurrentGame();
     return;
   }
 
@@ -401,7 +1051,6 @@ async function executeBotTurn() {
       chosenColor = botChooseColor(hand);
     }
 
-    // Bot calls last card when going from 2 cards to 1
     if (hand.length === 2) {
       soundLastCard();
       showLastCardPopup();
@@ -409,12 +1058,10 @@ async function executeBotTurn() {
 
     playCard(state, botIndex, card.id, chosenColor);
 
-    // Animate: card-back flies from bot area to discard, flips to reveal
     soundBotPlay();
     await flyFlipCard(botAreaEl, discardEl, card);
     animateCardToDiscard();
 
-    // Show toast and feedback for special cards
     if (card.type === 'special') {
       playSpecialSound(card.value);
       showActionFeedback(card.value);
@@ -430,12 +1077,10 @@ async function executeBotTurn() {
       }
     }
   } else {
-    // No playable card — draw one
     const drawn = drawCards(state, botIndex, 1);
     showToast(botName + ' שולף קלף');
     soundCardDraw();
 
-    // Animate: card-back flies from draw pile to bot area
     await flyCardBack(drawPileEl, botAreaEl);
 
     if (drawn.length > 0) {
@@ -450,7 +1095,6 @@ async function executeBotTurn() {
         }
         playCard(state, botIndex, drawnCard.id, chosenColor);
 
-        // Animate: bot plays the drawn card
         soundBotPlay();
         await flyFlipCard(botAreaEl, discardEl, drawnCard);
         animateCardToDiscard();
@@ -460,11 +1104,9 @@ async function executeBotTurn() {
           showActionFeedback(drawnCard.value);
         }
       } else {
-        // Can't play drawn card — advance turn
         state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
       }
     } else {
-      // Nothing to draw — advance turn
       state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
     }
   }
@@ -474,33 +1116,84 @@ async function executeBotTurn() {
 
 function endGame() {
   clearSnapshot();
-  recordGame(state.winner === 0, state.numPlayers, turnCount);
+
+  const roundPoints = getRoundPoints(state.winner);
+  let matchComplete = false;
+
+  if (state.matchMode === 'points') {
+    const updatedScores = [...state.matchScores];
+    updatedScores[state.winner] += roundPoints;
+    state.matchScores = updatedScores;
+
+    if (updatedScores[state.winner] >= state.targetScore) {
+      state.matchWinner = state.winner;
+      matchComplete = true;
+    } else {
+      state.matchWinner = null;
+    }
+  } else {
+    matchComplete = true;
+    state.matchWinner = state.winner;
+  }
+
+  if (state.matchMode === 'single' || matchComplete) {
+    recordGame(state.matchWinner === 0, state.numPlayers, turnCount);
+  }
 
   const endScreen = document.getElementById('end-screen');
   if (endScreen) {
     endScreen.classList.remove('end-win', 'end-lose');
   }
 
-  if (state.winner === 0) {
+  const winnerName = PLAYER_NAMES[state.winner] || '';
+
+  if (state.matchMode === 'points' && !matchComplete) {
+    if (state.winner === 0) {
+      if (endScreen) endScreen.classList.add('end-win');
+      soundWin();
+      showConfetti();
+      showEndScreen('ניצחת בסיבוב!', '+' + roundPoints + ' נק\' נוספו לך');
+      announce('ניצחת בסיבוב וקיבלת ' + roundPoints + ' נקודות.');
+    } else {
+      if (endScreen) endScreen.classList.add('end-lose');
+      soundLose();
+      showEndScreen(winnerName + ' ניצח בסיבוב', '+' + roundPoints + ' נק\' ל' + winnerName);
+      announce(winnerName + ' ניצח בסיבוב וקיבל ' + roundPoints + ' נקודות.');
+    }
+  } else if (state.matchWinner === 0) {
     if (endScreen) endScreen.classList.add('end-win');
     soundWin();
-    showEndScreen('\u{1F389} כל הכבוד! ניצחת!', 'שיחקת מעולה!');
-    announce('כל הכבוד! ניצחת!');
+    if (state.matchMode === 'points') {
+      showEndScreen('\u{1F389} ניצחת במשחק הנקודות!', 'הגעת ל' + state.matchScores[0] + ' נקודות');
+      announce('כל הכבוד. ניצחת במשחק הנקודות.');
+    } else {
+      showEndScreen('\u{1F389} כל הכבוד! ניצחת!', 'שיחקת מעולה!');
+      announce('כל הכבוד! ניצחת!');
+    }
     showConfetti();
   } else {
     if (endScreen) endScreen.classList.add('end-lose');
     soundLose();
-    const winnerName = PLAYER_NAMES[state.winner] || '';
-    const encouragements = [
-      'כמעט הצלחת! עוד סיבוב?',
-      'לא נורא, בפעם הבאה!',
-      'שיחקת טוב! נסה שוב?',
-      'היה קרוב! עוד משחק?',
-    ];
-    const subtitle = encouragements[Math.floor(Math.random() * encouragements.length)];
-    showEndScreen(winnerName + ' ניצח הפעם', subtitle);
-    announce(winnerName + ' ניצח הפעם. ' + subtitle);
+
+    if (state.matchMode === 'points') {
+      const champion = PLAYER_NAMES[state.matchWinner] || winnerName;
+      showEndScreen(champion + ' ניצח במשחק הנקודות', 'אפשר רימאץ\' מיד');
+      announce(champion + ' ניצח במשחק הנקודות.');
+    } else {
+      const encouragements = [
+        'כמעט הצלחת! עוד סיבוב?',
+        'לא נורא, בפעם הבאה!',
+        'שיחקת טוב! נסה שוב?',
+        'היה קרוב! עוד משחק?'
+      ];
+      const subtitle = encouragements[Math.floor(Math.random() * encouragements.length)];
+      showEndScreen(winnerName + ' ניצח הפעם', subtitle);
+      announce(winnerName + ' ניצח הפעם. ' + subtitle);
+    }
   }
+
+  renderEndScoreboard(roundPoints, matchComplete);
+  updateEndButtons(matchComplete);
 }
 
 init();

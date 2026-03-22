@@ -60,6 +60,29 @@ describe('createGameState()', () => {
     const total = handCards + state.drawPile.length + state.discardPile.length;
     assertEqual(total, 108);
   });
+
+  it('accepts match/session options', () => {
+    const state = createGameState(3, {
+      gameMode: 'online',
+      matchMode: 'points',
+      targetScore: 300,
+      matchScores: [15, 25, 35],
+      roundNumber: 4,
+      roomCode: 'ROOM42',
+      nickname: 'guest'
+    });
+
+    assertEqual(state.gameMode, 'online');
+    assertEqual(state.matchMode, 'points');
+    assertEqual(state.targetScore, 300);
+    assertEqual(state.roundNumber, 4);
+    assertEqual(state.roomCode, 'ROOM42');
+    assertEqual(state.nickname, 'guest');
+    assertEqual(state.matchScores.length, 3);
+    assertEqual(state.matchScores[0], 15);
+    assertEqual(state.matchScores[1], 25);
+    assertEqual(state.matchScores[2], 35);
+  });
 });
 
 // ── canPlayCard ─────────────────────────────────────────────

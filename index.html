@@ -24,6 +24,20 @@
     <div class="welcome-content">
       <h1 class="game-title">צבעוני!</h1>
       <p class="welcome-subtitle">משחק הקלפים המוכר והאהוב</p>
+      <div class="game-mode-section">
+        <span class="player-count-label">מצב משחק</span>
+        <div class="game-mode-buttons">
+          <button class="game-mode-btn active" data-mode="local" aria-label="מצב מקומי">מקומי</button>
+          <button class="game-mode-btn" data-mode="online" aria-label="מצב אונליין">אונליין</button>
+        </div>
+      </div>
+      <div class="match-mode-section">
+        <span class="player-count-label">סוג משחק</span>
+        <div class="match-mode-buttons">
+          <button class="match-mode-btn active" data-match-mode="single" aria-label="סיבוב יחיד">סיבוב יחיד</button>
+          <button class="match-mode-btn" data-match-mode="points" aria-label="משחק נקודות">עד 250 נק'</button>
+        </div>
+      </div>
       <div class="player-count-section">
         <span class="player-count-label">כמה שחקנים?</span>
         <div class="player-count-buttons">
@@ -32,9 +46,23 @@
           <button class="player-count-btn active" data-count="4" aria-label="4 שחקנים">4</button>
         </div>
       </div>
-      <button id="start-btn" class="btn btn-primary" aria-label="התחל משחק">!בואו נשחק</button>
+      <div id="online-panel" class="online-panel hidden" aria-live="polite">
+        <label class="online-label" for="nickname-input">כינוי</label>
+        <input id="nickname-input" class="online-input" type="text" maxlength="20" placeholder="guest" aria-label="כינוי אונליין">
+        <div class="online-actions">
+          <button id="quick-match-btn" class="btn-secondary" aria-label="התאמה מהירה">התאמה מהירה</button>
+          <button id="create-room-btn" class="btn-secondary" aria-label="יצירת חדר פרטי">צור חדר</button>
+        </div>
+        <div class="join-room-row">
+          <input id="room-code-input" class="online-input room-code-input" type="text" maxlength="8" placeholder="קוד חדר" aria-label="קוד חדר">
+          <button id="join-room-btn" class="btn-secondary" aria-label="הצטרף לחדר">הצטרף</button>
+        </div>
+        <div id="online-status" class="online-status"></div>
+      </div>
+      <button id="start-btn" class="btn btn-primary" aria-label="התחל משחק">בואו נשחק!</button>
       <button id="stats-btn" class="btn-stats" aria-label="סטטיסטיקות">📊</button>
     </div>
+    <button id="welcome-mute-btn" class="btn-mute-welcome" title="השתק/הפעל צלילים" aria-label="השתק צלילים">🔊</button>
   </div>
 
   <!-- Game Table -->
@@ -71,6 +99,8 @@
 
       <!-- Restart Button -->
       <button id="restart-btn" class="btn-restart" title="משחק חדש" aria-label="משחק חדש">&#x21BB;</button>
+      <button id="mute-btn" class="btn-mute" title="השתק/הפעל צלילים" aria-label="השתק צלילים">🔊</button>
+      <div id="session-banner" class="session-banner hidden"></div>
 
       <!-- Player Area -->
       <div class="player-area">
@@ -85,7 +115,7 @@
   <!-- Color Picker Overlay -->
   <div id="color-picker" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="color-picker-title">
     <div class="color-picker-content">
-      <h2 id="color-picker-title">?בחר צבע</h2>
+      <h2 id="color-picker-title">בחר צבע?</h2>
       <div class="color-buttons">
         <button class="color-btn color-red" data-color="red" aria-label="אדום"></button>
         <button class="color-btn color-blue" data-color="blue" aria-label="כחול"></button>
@@ -96,12 +126,28 @@
     </div>
   </div>
 
+  <!-- Restart Confirmation -->
+  <div id="restart-confirm" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="restart-confirm-title">
+    <div class="restart-confirm-content">
+      <h2 id="restart-confirm-title">משחק חדש?</h2>
+      <p>ההתקדמות במשחק הנוכחי תאבד</p>
+      <div class="restart-confirm-buttons">
+        <button id="restart-confirm-yes" class="btn btn-primary">כן, משחק חדש</button>
+        <button id="restart-confirm-no" class="btn-cancel-restart">חזרה למשחק</button>
+      </div>
+    </div>
+  </div>
+
   <!-- End Screen -->
   <div id="end-screen" class="screen hidden">
     <div id="confetti-container"></div>
     <div class="end-message" id="end-message"></div>
     <div class="end-subtitle" id="end-subtitle"></div>
-    <button id="play-again-btn" class="btn btn-primary" aria-label="שחק שוב">שחק שוב</button>
+    <div class="end-scoreboard" id="end-scoreboard"></div>
+    <div class="end-actions">
+      <button id="play-again-btn" class="btn btn-primary" aria-label="שחק שוב">שחק שוב</button>
+      <button id="back-to-menu-btn" class="btn-secondary end-menu-btn" aria-label="חזרה לתפריט">לתפריט</button>
+    </div>
   </div>
 
   <div id="animation-layer"></div>
@@ -109,7 +155,14 @@
   <script type="module" src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(function() {});
+      var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '::1';
+      if (isLocalhost) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          registrations.forEach(function(reg) { reg.unregister(); });
+        }).catch(function() {});
+      } else {
+        navigator.serviceWorker.register('service-worker.js').catch(function() {});
+      }
     }
   </script>
 </body>

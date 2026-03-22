@@ -5,6 +5,9 @@ import { describe, it, assert, assertEqual } from './runner.js';
 
 const STORAGE_KEY = 'tsivoni_game_snapshot';
 const PLAYER_COUNT_KEY = 'tsivoni_player_count';
+const GAME_MODE_KEY = 'tsivoni_game_mode';
+const MATCH_MODE_KEY = 'tsivoni_match_mode';
+const NICKNAME_KEY = 'tsivoni_nickname';
 
 // ── Helper: build a card with a given id ────────────────────
 let testCardId = 8000;
@@ -28,7 +31,14 @@ function makeTestState() {
     winner: null,
     lastCardCalledBy: new Set([0]),
     pendingAction: null,
-    hasDrawnThisTurn: false
+    hasDrawnThisTurn: false,
+    gameMode: 'online',
+    matchMode: 'points',
+    targetScore: 250,
+    matchScores: [10, 20],
+    roundNumber: 3,
+    roomCode: 'AB12CD',
+    nickname: 'tester'
   };
 }
 
@@ -50,6 +60,14 @@ describe('Persistence — snapshot round-trip', () => {
     assertEqual(restored.gameOver, false);
     assertEqual(restored.winner, null);
     assertEqual(restored.hasDrawnThisTurn, false);
+    assertEqual(restored.gameMode, 'online');
+    assertEqual(restored.matchMode, 'points');
+    assertEqual(restored.targetScore, 250);
+    assertEqual(restored.roundNumber, 3);
+    assertEqual(restored.roomCode, 'AB12CD');
+    assertEqual(restored.nickname, 'tester');
+    assertEqual(restored.matchScores[0], 10);
+    assertEqual(restored.matchScores[1], 20);
     assertEqual(restored.hands.length, 2);
     assertEqual(restored.hands[0].length, 2);
     assertEqual(restored.hands[1].length, 1);
@@ -130,6 +148,53 @@ describe('Persistence — player count', () => {
 
     localStorage.setItem(PLAYER_COUNT_KEY, 'abc');
     assertEqual(loadPlayerCount(), null);
+  });
+});
+
+describe('Persistence — mode and nickname preferences', () => {
+  it('saves and loads game mode', async () => {
+    const { saveGameMode, loadGameMode } = await import('../js/persistence.js');
+
+    saveGameMode('online');
+    assertEqual(loadGameMode(), 'online');
+
+    saveGameMode('local');
+    assertEqual(loadGameMode(), 'local');
+  });
+
+  it('rejects invalid game mode', async () => {
+    const { loadGameMode } = await import('../js/persistence.js');
+    localStorage.setItem(GAME_MODE_KEY, 'invalid');
+    assertEqual(loadGameMode(), null);
+  });
+
+  it('saves and loads match mode', async () => {
+    const { saveMatchMode, loadMatchMode } = await import('../js/persistence.js');
+
+    saveMatchMode('points');
+    assertEqual(loadMatchMode(), 'points');
+
+    saveMatchMode('single');
+    assertEqual(loadMatchMode(), 'single');
+  });
+
+  it('rejects invalid match mode', async () => {
+    const { loadMatchMode } = await import('../js/persistence.js');
+    localStorage.setItem(MATCH_MODE_KEY, 'invalid');
+    assertEqual(loadMatchMode(), null);
+  });
+
+  it('saves and loads nickname', async () => {
+    const { saveNickname, loadNickname } = await import('../js/persistence.js');
+
+    saveNickname(' gamer ');
+    assertEqual(loadNickname(), 'gamer');
+  });
+
+  it('falls back to empty nickname when missing', async () => {
+    const { loadNickname } = await import('../js/persistence.js');
+    localStorage.removeItem(NICKNAME_KEY);
+    assertEqual(loadNickname(), '');
   });
 });
 

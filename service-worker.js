@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tsivoni-v2';
+const CACHE_NAME = 'tsivoni-v4';
 const ASSETS = [
   '/hebrew-uno-game/',
   '/hebrew-uno-game/index.html',
@@ -16,7 +16,8 @@ const ASSETS = [
   '/hebrew-uno-game/js/sounds.js',
   '/hebrew-uno-game/js/state.js',
   '/hebrew-uno-game/js/ui.js',
-  '/hebrew-uno-game/js/stats.js'
+  '/hebrew-uno-game/js/stats.js',
+  '/hebrew-uno-game/js/persistence.js'
 ];
 
 self.addEventListener('install', event => {

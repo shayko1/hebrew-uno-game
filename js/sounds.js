@@ -1,5 +1,6 @@
 let audioCtx = null;
 let audioEnabled = true;
+let muted = false;
 
 try {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -7,8 +8,29 @@ try {
   audioEnabled = false;
 }
 
+// Restore mute preference from localStorage
+try {
+  muted = localStorage.getItem('tsivoni_muted') === 'true';
+} catch (e) {
+  // localStorage unavailable — default to unmuted
+}
+
+export function toggleMute() {
+  muted = !muted;
+  try {
+    localStorage.setItem('tsivoni_muted', String(muted));
+  } catch (e) {
+    // Ignore storage errors
+  }
+  return muted;
+}
+
+export function isMuted() {
+  return muted;
+}
+
 function playTone(freq, duration, type = 'sine', volume = 0.3) {
-  if (!audioEnabled || !audioCtx) return;
+  if (!audioEnabled || !audioCtx || muted) return;
   try {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();

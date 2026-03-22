@@ -7,9 +7,24 @@ import { createDeck, shuffle, deal } from './deck.js';
  * - First number card from remaining pile becomes starting discard
  * - Non-number cards encountered are placed back and pile is re-scanned
  */
-export function createGameState(numPlayers = 4) {
+export function createGameState(numPlayers = 4, options = {}) {
   const deck = shuffle(createDeck());
   const { hands, remaining } = deal(deck, numPlayers, 7);
+
+  const gameMode = options.gameMode === 'online' ? 'online' : 'local';
+  const matchMode = options.matchMode === 'points' ? 'points' : 'single';
+  const targetScore = (typeof options.targetScore === 'number' && options.targetScore > 0) ? Math.floor(options.targetScore) : 250;
+  const roundNumber = (Number.isInteger(options.roundNumber) && options.roundNumber > 0) ? options.roundNumber : 1;
+  const roomCode = typeof options.roomCode === 'string' ? options.roomCode : null;
+  const nickname = typeof options.nickname === 'string' ? options.nickname.trim().slice(0, 20) : '';
+
+  let matchScores = Array(numPlayers).fill(0);
+  if (Array.isArray(options.matchScores) && options.matchScores.length === numPlayers) {
+    matchScores = options.matchScores.map(score => {
+      if (typeof score !== 'number' || score < 0) return 0;
+      return Math.floor(score);
+    });
+  }
 
   // Find first number card in remaining pile for starting discard
   let startIndex = -1;
@@ -46,7 +61,14 @@ export function createGameState(numPlayers = 4) {
     gameOver: false,
     winner: null,
     lastCardCalledBy: new Set(),
-    pendingAction: null
+    pendingAction: null,
+    gameMode,
+    matchMode,
+    targetScore,
+    matchScores,
+    roundNumber,
+    roomCode,
+    nickname
   };
 }
 
