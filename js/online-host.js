@@ -282,8 +282,10 @@ export function hostCallLastCard() {
 function syncState() {
   if (!state) return;
 
+  // NOTE: Firestore does not support nested arrays, so we do NOT include
+  // `hands` here (array of arrays). The guest gets its hand via `guestHand`
+  // and the host hand count via `hostHandCount` separately.
   const serializedState = {
-    hands: state.hands.map((h) => h.map(serializeCard)),
     drawPileCount: state.drawPile.length,
     discardPile: state.discardPile.map(serializeCard),
     currentPlayer: state.currentPlayer,
@@ -303,7 +305,9 @@ function syncState() {
     guestHand,
     hostHandCount,
     moves: [] // Clear moves after processing
-  }).catch(() => {});
+  }).catch((err) => {
+    if (callbacks.onError) callbacks.onError(err);
+  });
 
   lastMoveIndex = 0;
 
