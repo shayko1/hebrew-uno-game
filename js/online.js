@@ -12,7 +12,8 @@ import {
   limit,
   getDocs,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  runTransaction
 } from 'https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js';
 import { getDb, getUid, ensureAuth } from './firebase-config.js';
 
@@ -35,6 +36,10 @@ function generateRoomCode() {
 
 function roomRef(code) {
   return doc(getDb(), 'rooms', code);
+}
+
+export function getRoomRef(code) {
+  return roomRef(code);
 }
 
 export async function createRoom(nickname) {
@@ -187,20 +192,24 @@ export async function writeMove(move) {
   if (!uid) return;
 
   const ref = roomRef(currentRoomCode);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
+  const db = getDb();
 
-  const data = snap.data();
-  const moves = data.moves || [];
-  moves.push({
-    ...move,
-    playerId: uid,
-    timestamp: Date.now()
-  });
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) return;
 
-  await updateDoc(ref, {
-    moves,
-    moveIndex: moves.length
+    const data = snap.data();
+    const moves = data.moves || [];
+    moves.push({
+      ...move,
+      playerId: uid,
+      timestamp: Date.now()
+    });
+
+    transaction.update(ref, {
+      moves,
+      moveIndex: moves.length
+    });
   });
 }
 

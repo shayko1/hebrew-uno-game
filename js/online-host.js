@@ -1,8 +1,9 @@
 import { createGameState, playCard, drawCards, getTopCard, getPlayableCards, nextPlayerIndex } from './state.js';
 import { botChooseCard, botChooseColor } from './bot.js';
 import { PLAYER_NAMES, SPECIAL_TYPES } from './constants.js';
-import { getUid } from './firebase-config.js';
-import { listenToRoom, updateGameState, setRoomStatus, stopListening } from './online.js';
+import { getUid, getDb } from './firebase-config.js';
+import { listenToRoom, updateGameState, setRoomStatus, stopListening, getRoomRef } from './online.js';
+import { runTransaction } from 'https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js';
 
 const DISCONNECT_TIMEOUT_MS = 30000;
 const BOT_TURN_DELAY_MS = 1000;
@@ -300,11 +301,29 @@ function syncState() {
   const guestHand = state.hands[1].map(serializeCard);
   const hostHandCount = state.hands[0].length;
 
-  updateGameState({
-    gameState: serializedState,
-    guestHand,
-    hostHandCount,
-    moves: [] // Clear moves after processing
+  // Use a transaction to safely clear only processed moves, preserving any
+  // new moves the guest wrote concurrently
+  const processedCount = lastMoveIndex;
+  const ref = getRoomRef(roomCode);
+  const db = getDb();
+
+  runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+    const currentMoves = data.moves || [];
+
+    // Keep only moves that arrived after our last processed index
+    const remainingMoves = currentMoves.slice(processedCount);
+
+    transaction.update(ref, {
+      gameState: serializedState,
+      guestHand,
+      hostHandCount,
+      moves: remainingMoves,
+      moveIndex: remainingMoves.length
+    });
   }).catch((err) => {
     if (callbacks.onError) callbacks.onError(err);
   });

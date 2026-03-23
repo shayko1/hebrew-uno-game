@@ -277,6 +277,21 @@ function init() {
   }
 
   selectedNickname = loadNickname();
+
+  // Check for ?room=CODE in URL — auto-switch to online and prefill
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = urlParams.get('room');
+  if (roomFromUrl) {
+    const cleanCode = normalizeRoomCode(roomFromUrl);
+    if (cleanCode) {
+      selectedGameMode = 'online';
+      saveGameMode(selectedGameMode);
+      pendingRoomCode = cleanCode;
+    }
+    // Clean the URL so refreshing doesn't re-trigger
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   syncWelcomeControls();
 
   const savedState = loadSnapshot();
@@ -788,11 +803,80 @@ function endOnlineGuestGame() {
   updateEndButtons(true);
 }
 
+function getRoomLink(code) {
+  const base = window.location.origin + window.location.pathname;
+  return base + '?room=' + encodeURIComponent(code);
+}
+
 function renderSessionBannerOnline(code, status) {
   const banner = document.getElementById('session-banner');
   if (!banner) return;
-  banner.textContent = 'אונליין • חדר ' + code + '  •  ' + status;
+
+  banner.textContent = '';
+
+  const text = document.createElement('span');
+  text.textContent = 'אונליין • חדר ';
+  banner.appendChild(text);
+
+  const codeBtn = document.createElement('button');
+  codeBtn.className = 'room-code-copy';
+  codeBtn.textContent = code;
+  codeBtn.title = 'העתק קישור לחדר';
+  codeBtn.setAttribute('aria-label', 'העתק קישור לחדר ' + code);
+  codeBtn.addEventListener('click', () => copyOrShareRoom(code, codeBtn));
+  banner.appendChild(codeBtn);
+
+  const statusText = document.createElement('span');
+  statusText.textContent = '  •  ' + status;
+  banner.appendChild(statusText);
+
   banner.classList.remove('hidden');
+}
+
+function copyOrShareRoom(code, btnEl) {
+  const link = getRoomLink(code);
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'צבעוני! - הצטרף למשחק',
+      text: 'בוא נשחק צבעוני! קוד חדר: ' + code,
+      url: link
+    }).catch(() => {});
+    return;
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(link).then(() => {
+      showCopiedFeedback(btnEl);
+    }).catch(() => {
+      fallbackCopy(link, btnEl);
+    });
+  } else {
+    fallbackCopy(link, btnEl);
+  }
+}
+
+function fallbackCopy(text, btnEl) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  showCopiedFeedback(btnEl);
+}
+
+function showCopiedFeedback(btnEl) {
+  if (!btnEl) return;
+  const original = btnEl.textContent;
+  btnEl.textContent = 'הועתק!';
+  btnEl.classList.add('copied');
+  setTimeout(() => {
+    btnEl.textContent = original;
+    btnEl.classList.remove('copied');
+  }, 1500);
 }
 
 function showOnlineThinking(show) {
@@ -1127,10 +1211,12 @@ async function handleDrawPile() {
   if (onlineRole === 'guest') {
     if (state.hasDrawnThisTurn) {
       showToast('כבר שלפת, תורך עבר');
+      state.hasDrawnThisTurn = false;
       await guestPassAfterDraw();
       return;
     }
     soundCardDraw();
+    state.hasDrawnThisTurn = true;
     await guestDrawCard();
     return;
   }
@@ -1140,6 +1226,7 @@ async function handleDrawPile() {
     const result = hostDrawCard();
     if (!result) return;
     soundCardDraw();
+    renderCurrentGame();
     if (!result.canPlay) {
       showToast('שלפת קלף ועברת...');
     }

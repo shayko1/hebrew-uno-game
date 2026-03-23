@@ -12,6 +12,7 @@ let disconnectTimer = null;
 let callbacks = {};
 let hostUid = null;
 let hasDrawnThisTurn = false;
+let previousCurrentPlayer = null;
 
 export function getGuestHand() {
   return myHand;
@@ -29,6 +30,7 @@ export async function guestGame(code, onCallbacks) {
   roomCode = code;
   callbacks = onCallbacks || {};
   hasDrawnThisTurn = false;
+  previousCurrentPlayer = null;
 
   listenToRoom(code, {
     onUpdate: handleRoomUpdate,
@@ -74,7 +76,19 @@ function handleRoomUpdate(data) {
     const isFirstState = !gameState;
     gameState = data.gameState;
 
-    // Build a view for rendering
+    // Detect turn change — only reset draw flag on actual turn transition
+    const turnChanged = previousCurrentPlayer !== null && previousCurrentPlayer !== gameState.currentPlayer;
+    previousCurrentPlayer = gameState.currentPlayer;
+
+    if (gameState.currentPlayer === 1) {
+      if (turnChanged || isFirstState) {
+        hasDrawnThisTurn = false;
+      }
+    } else {
+      hasDrawnThisTurn = false;
+    }
+
+    // Build view after draw flag is updated so viewState reflects correct value
     const viewState = buildViewState(data);
 
     // Detect game start (first time we receive game state)
@@ -89,9 +103,7 @@ function handleRoomUpdate(data) {
 
     if (callbacks.onStateUpdate) callbacks.onStateUpdate(viewState);
 
-    // Detect turn change
     if (gameState.currentPlayer === 1) {
-      hasDrawnThisTurn = false;
       if (callbacks.onMyTurn) callbacks.onMyTurn(viewState);
     } else {
       if (callbacks.onOpponentTurn) callbacks.onOpponentTurn(viewState);
@@ -215,5 +227,6 @@ export function cleanup() {
   gameState = null;
   hostUid = null;
   hasDrawnThisTurn = false;
+  previousCurrentPlayer = null;
   callbacks = {};
 }

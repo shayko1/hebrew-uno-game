@@ -702,6 +702,35 @@ html, body {
   backdrop-filter: blur(4px);
 }
 
+.room-code-copy {
+  display: inline;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin: 0 2px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.room-code-copy:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+.room-code-copy:active {
+  transform: scale(0.95);
+}
+
+.room-code-copy.copied {
+  background: rgba(76,175,80,0.5);
+  border-color: rgba(76,175,80,0.7);
+}
+
 /* ===== Last Card Button ===== */
 .btn-last-card, #last-card-btn {
   position: absolute;
