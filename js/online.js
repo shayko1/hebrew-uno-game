@@ -18,8 +18,12 @@ import {
 import { getDb, getUid, ensureAuth } from './firebase-config.js';
 
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 20000;
+export const STALE_THRESHOLD_MS = 40000;
+
 let roomUnsubscribe = null;
 let currentRoomCode = null;
+let heartbeatTimer = null;
 
 export function getCurrentRoomCode() {
   return currentRoomCode;
@@ -60,15 +64,15 @@ export async function createRoom(nickname) {
       [uid]: {
         nickname: nickname || 'host',
         index: 0,
-        connected: true,
-        lastSeen: serverTimestamp()
+        lastSeenAt: serverTimestamp()
       }
     },
     gameState: null,
     guestHand: null,
     hostHandCount: 0,
     moves: [],
-    moveIndex: 0
+    moveIndex: 0,
+    processedMoveIndex: 0
   };
 
   await setDoc(roomRef(code), roomData);
@@ -104,8 +108,7 @@ export async function joinRoom(code, nickname) {
     [`players.${uid}`]: {
       nickname: nickname || 'guest',
       index: 1,
-      connected: true,
-      lastSeen: serverTimestamp()
+      lastSeenAt: serverTimestamp()
     },
     status: 'playing'
   });
@@ -171,19 +174,43 @@ export function stopListening() {
   }
 }
 
-export async function updatePresence(connected) {
+export async function sendHeartbeat() {
   if (!currentRoomCode) return;
   const uid = getUid();
   if (!uid) return;
 
   try {
     await updateDoc(roomRef(currentRoomCode), {
-      [`players.${uid}.connected`]: connected,
-      [`players.${uid}.lastSeen`]: serverTimestamp()
+      [`players.${uid}.lastSeenAt`]: serverTimestamp()
     });
   } catch {
     // Room may have been deleted
   }
+}
+
+export function startHeartbeat() {
+  stopHeartbeat();
+  sendHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      sendHeartbeat();
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+export function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+export function isPlayerStale(playerData) {
+  if (!playerData || !playerData.lastSeenAt) return true;
+  const lastSeenMs = playerData.lastSeenAt.toMillis
+    ? playerData.lastSeenAt.toMillis()
+    : playerData.lastSeenAt;
+  return Date.now() - lastSeenMs > STALE_THRESHOLD_MS;
 }
 
 export async function writeMove(move) {
@@ -227,6 +254,7 @@ export async function leaveRoom() {
   if (!currentRoomCode) return;
   const uid = getUid();
 
+  stopHeartbeat();
   stopListening();
 
   if (uid) {
@@ -239,7 +267,6 @@ export async function leaveRoom() {
           await deleteDoc(ref);
         } else {
           await updateDoc(ref, {
-            [`players.${uid}.connected`]: false,
             status: 'abandoned'
           });
         }

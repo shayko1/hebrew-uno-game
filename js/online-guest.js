@@ -1,5 +1,5 @@
 import { getUid } from './firebase-config.js';
-import { listenToRoom, writeMove, updatePresence, stopListening } from './online.js';
+import { listenToRoom, writeMove, stopListening, isPlayerStale } from './online.js';
 import { canPlayCard, getPlayableCards } from './state.js';
 
 const DISCONNECT_TIMEOUT_MS = 30000;
@@ -52,12 +52,12 @@ function handleRoomUpdate(data) {
     hostUid = data.hostId;
   }
 
-  // Track host presence
+  // Track host presence via heartbeat stale check
   if (hostUid) {
     const hostPlayer = data.players?.[hostUid];
-    if (hostPlayer && !hostPlayer.connected) {
+    if (isPlayerStale(hostPlayer)) {
       startDisconnectTimer();
-    } else if (hostPlayer && hostPlayer.connected) {
+    } else {
       clearDisconnectTimer();
       if (callbacks.onHostReconnected) callbacks.onHostReconnected();
     }

@@ -19,7 +19,7 @@ import {
   saveNickname,
   loadNickname
 } from './persistence.js';
-import { createRoom, joinRoom, quickMatch, leaveRoom, updatePresence, getCurrentRoomCode } from './online.js';
+import { createRoom, joinRoom, quickMatch, leaveRoom, startHeartbeat, stopHeartbeat, sendHeartbeat, getCurrentRoomCode } from './online.js';
 import { hostGame, hostPlayCard, hostDrawCard, hostPassAfterDraw, hostCallLastCard, getHostState, isGuestBot, cleanup as cleanupHost } from './online-host.js';
 import { guestGame, guestPlayCard, guestDrawCard, guestPassAfterDraw, guestCallLastCard, getGuestHand, getGuestGameState, cleanup as cleanupGuest } from './online-guest.js';
 
@@ -419,18 +419,16 @@ function init() {
     });
   }
 
-  // Lifecycle autosave + online presence
+  // Lifecycle autosave + online presence heartbeat
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       if (state) persistState();
-      if (onlineRole) updatePresence(false);
     } else {
-      if (onlineRole) updatePresence(true);
+      if (onlineRole) sendHeartbeat();
     }
   });
   window.addEventListener('pagehide', () => {
     if (state) persistState();
-    if (onlineRole) updatePresence(false);
   });
 }
 
@@ -663,6 +661,7 @@ async function handleJoinRoom() {
 
 function startOnlineAsHost(code, nickname) {
   onlineRole = 'host';
+  startHeartbeat();
   showScreen('game-screen');
   renderSessionBannerOnline(code, 'ממתין ליריב...');
 
@@ -721,6 +720,7 @@ function startOnlineAsHost(code, nickname) {
 
 function startOnlineAsGuest(code, nickname) {
   onlineRole = 'guest';
+  startHeartbeat();
   showScreen('game-screen');
   renderSessionBannerOnline(code, 'מתחבר...');
 
@@ -1036,6 +1036,7 @@ function handlePlayAgain() {
 
 function backToMenu() {
   clearBotTurnTimer();
+  stopHeartbeat();
 
   if (onlineRole === 'host') {
     cleanupHost();
@@ -1119,7 +1120,7 @@ async function handleCardClick(card) {
       playSpecialSound(card.value);
       showActionFeedback(card.value);
     }
-    hostPlayCard(card.id, null);
+    await hostPlayCard(card.id, null);
     return;
   }
 
@@ -1185,7 +1186,7 @@ async function handleColorChoice(color) {
 
   // Online host: use host module
   if (onlineRole === 'host') {
-    hostPlayCard(card.id, color);
+    await hostPlayCard(card.id, color);
     return;
   }
 
@@ -1223,7 +1224,7 @@ async function handleDrawPile() {
 
   // Online host: use host module
   if (onlineRole === 'host') {
-    const result = hostDrawCard();
+    const result = await hostDrawCard();
     if (!result) return;
     soundCardDraw();
     renderCurrentGame();
