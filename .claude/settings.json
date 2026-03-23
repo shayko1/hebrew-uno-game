@@ -1,0 +1,12 @@
+{
+  "project": "tsivoni-game",
+  "language": "javascript",
+  "packageManager": "npm",
+  "permissions": {
+    "allow": [
+      "npx serve",
+      "npm run",
+      "python3 -m http.server"
+    ]
+  }
+}
