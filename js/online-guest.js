@@ -71,11 +71,16 @@ function handleRoomUpdate(data) {
   }
 
   if (data.gameState) {
-    const prevPlayer = gameState?.currentPlayer;
+    const isFirstState = !gameState;
     gameState = data.gameState;
 
     // Build a view for rendering
     const viewState = buildViewState(data);
+
+    // Detect game start (first time we receive game state)
+    if (isFirstState) {
+      if (callbacks.onGameStart) callbacks.onGameStart(viewState);
+    }
 
     if (data.gameState.gameOver) {
       if (callbacks.onGameEnd) callbacks.onGameEnd(viewState);
@@ -92,12 +97,6 @@ function handleRoomUpdate(data) {
       if (callbacks.onOpponentTurn) callbacks.onOpponentTurn(viewState);
     }
   }
-
-  // Detect game start
-  if (data.status === 'playing' && data.gameState && !gameState) {
-    gameState = data.gameState;
-    if (callbacks.onGameStart) callbacks.onGameStart(buildViewState(data));
-  }
 }
 
 function buildViewState(data) {
@@ -113,10 +112,15 @@ function buildViewState(data) {
     value: 'hidden'
   }));
 
+  // Create a fake drawPile array so ui.js can read .length
+  const drawPileCount = gs.drawPileCount || 0;
+  const fakeDrawPile = new Array(drawPileCount);
+
   return {
     hands: [myHand, fakeHostHand],
     discardPile: gs.discardPile || [],
-    drawPileCount: gs.drawPileCount || 0,
+    drawPile: fakeDrawPile,
+    drawPileCount,
     currentPlayer: gs.currentPlayer === 1 ? 0 : 1, // Flip perspective: guest is player 0 in their view
     direction: gs.direction,
     currentColor: gs.currentColor,
@@ -127,7 +131,8 @@ function buildViewState(data) {
     isGuestView: true,
     realCurrentPlayer: gs.currentPlayer,
     realWinner: gs.winner,
-    hasDrawnThisTurn
+    hasDrawnThisTurn,
+    lastCardCalledBy: new Set()
   };
 }
 
@@ -168,9 +173,13 @@ export async function guestDrawCard() {
 
 export async function guestPassAfterDraw() {
   if (!gameState || gameState.gameOver) return;
-  // Guest passes by not sending a play move — host will see no play after draw
-  // and advance turn on next state sync
+  if (gameState.currentPlayer !== 1) return;
+
   hasDrawnThisTurn = false;
+
+  await writeMove({
+    type: 'pass'
+  });
 }
 
 export async function guestCallLastCard() {

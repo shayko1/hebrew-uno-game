@@ -21,7 +21,7 @@ import {
 } from './persistence.js';
 import { createRoom, joinRoom, quickMatch, leaveRoom, updatePresence, getCurrentRoomCode } from './online.js';
 import { hostGame, hostPlayCard, hostDrawCard, hostPassAfterDraw, hostCallLastCard, getHostState, isGuestBot, cleanup as cleanupHost } from './online-host.js';
-import { guestGame, guestPlayCard, guestDrawCard, guestCallLastCard, getGuestHand, getGuestGameState, cleanup as cleanupGuest } from './online-guest.js';
+import { guestGame, guestPlayCard, guestDrawCard, guestPassAfterDraw, guestCallLastCard, getGuestHand, getGuestGameState, cleanup as cleanupGuest } from './online-guest.js';
 
 const DEFAULT_TARGET_SCORE = 250;
 
@@ -1123,10 +1123,11 @@ async function handleDrawPile() {
   if (state.pendingAction) return;
   if (animating) return;
 
-  // Online guest: send draw intent
+  // Online guest: send draw intent or pass
   if (onlineRole === 'guest') {
     if (state.hasDrawnThisTurn) {
       showToast('כבר שלפת, תורך עבר');
+      await guestPassAfterDraw();
       return;
     }
     soundCardDraw();

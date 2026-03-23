@@ -111,6 +111,12 @@ function processGuestMove(move) {
     const success = playCard(state, 1, move.cardId, move.chosenColor || null);
     if (!success) return; // Invalid play
 
+    // Last card penalty for guest
+    if (state.hands[1].length === 1 && !state.lastCardCalledBy.has(1)) {
+      drawCards(state, 1, 2);
+    }
+    state.lastCardCalledBy.delete(1);
+
     syncState();
 
     if (state.gameOver) {
@@ -136,6 +142,11 @@ function processGuestMove(move) {
       state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
     }
 
+    syncState();
+    advanceTurn();
+  } else if (move.type === 'pass') {
+    // Guest passes after drawing a playable card
+    state.currentPlayer = nextPlayerIndex(state.currentPlayer, state.direction, state.numPlayers);
     syncState();
     advanceTurn();
   } else if (move.type === 'lastCard') {
