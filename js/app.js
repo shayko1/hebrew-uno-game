@@ -19,14 +19,14 @@ import {
   saveNickname,
   loadNickname
 } from './persistence.js';
+import { createRoom, joinRoom, quickMatch, leaveRoom, updatePresence, getCurrentRoomCode } from './online.js';
+import { hostGame, hostPlayCard, hostDrawCard, hostPassAfterDraw, hostCallLastCard, getHostState, isGuestBot, cleanup as cleanupHost } from './online-host.js';
+import { guestGame, guestPlayCard, guestDrawCard, guestCallLastCard, getGuestHand, getGuestGameState, cleanup as cleanupGuest } from './online-guest.js';
 
 const DEFAULT_TARGET_SCORE = 250;
-const ROOM_STORAGE_PREFIX = 'tsivoni_room_';
-const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
 let state = null;
 let botTurnTimeout = null;
-let quickMatchTimeout = null;
 let selectedPlayerCount = 4;
 let selectedGameMode = 'local';
 let selectedMatchMode = 'single';
@@ -34,6 +34,7 @@ let selectedNickname = '';
 let pendingRoomCode = null;
 let turnCount = 0;
 let animating = false;
+let onlineRole = null; // 'host' | 'guest' | null
 
 function syncMuteButton(btn) {
   if (!btn) return;
@@ -50,70 +51,14 @@ function clearBotTurnTimer() {
   }
 }
 
-function clearOnlineTimers() {
-  if (quickMatchTimeout !== null) {
-    clearTimeout(quickMatchTimeout);
-    quickMatchTimeout = null;
-  }
-}
-
 function persistState() {
+  if (onlineRole) return; // Online games use Firebase, not localStorage
   saveSnapshot(state);
 }
 
 function normalizeRoomCode(code) {
   if (typeof code !== 'string') return '';
   return code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-}
-
-function generateRoomCode() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return code;
-}
-
-function saveRoomMeta(code, hostNickname) {
-  const normalizedCode = normalizeRoomCode(code);
-  if (!normalizedCode) return;
-
-  const roomData = {
-    code: normalizedCode,
-    host: (hostNickname || '').trim().slice(0, 20),
-    createdAt: Date.now()
-  };
-
-  try {
-    localStorage.setItem(ROOM_STORAGE_PREFIX + normalizedCode, JSON.stringify(roomData));
-  } catch {
-    // silent
-  }
-}
-
-function loadRoomMeta(code) {
-  const normalizedCode = normalizeRoomCode(code);
-  if (!normalizedCode) return null;
-
-  try {
-    const raw = localStorage.getItem(ROOM_STORAGE_PREFIX + normalizedCode);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw);
-    if (!parsed || parsed.code !== normalizedCode || typeof parsed.createdAt !== 'number') {
-      return null;
-    }
-
-    if (Date.now() - parsed.createdAt > ROOM_TTL_MS) {
-      localStorage.removeItem(ROOM_STORAGE_PREFIX + normalizedCode);
-      return null;
-    }
-
-    return parsed;
-  } catch {
-    return null;
-  }
 }
 
 function setOnlineStatus(message, tone = '') {
@@ -459,12 +404,18 @@ function init() {
     });
   }
 
-  // Lifecycle autosave
+  // Lifecycle autosave + online presence
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && state) persistState();
+    if (document.visibilityState === 'hidden') {
+      if (state) persistState();
+      if (onlineRole) updatePresence(false);
+    } else {
+      if (onlineRole) updatePresence(true);
+    }
   });
   window.addEventListener('pagehide', () => {
     if (state) persistState();
+    if (onlineRole) updatePresence(false);
   });
 }
 
@@ -587,7 +538,7 @@ function handleStartButton() {
   startGame();
 }
 
-function handleQuickMatch() {
+async function handleQuickMatch() {
   if (selectedGameMode !== 'online') {
     selectedGameMode = 'online';
     saveGameMode(selectedGameMode);
@@ -600,26 +551,27 @@ function handleQuickMatch() {
     return;
   }
 
-  clearOnlineTimers();
-  pendingRoomCode = null;
-  syncWelcomeControls();
-  setOnlineStatus('מחפש יריב... אם לא נמצא, נתחיל מול בוט.', 'warn');
   toggleOnlineControls(true);
+  setOnlineStatus('מחפש יריב...', 'warn');
 
-  const delay = 2400 + Math.random() * 2200;
-  quickMatchTimeout = setTimeout(() => {
-    quickMatchTimeout = null;
+  try {
+    const result = await quickMatch(nickname);
+    pendingRoomCode = result.code;
+
+    if (result.type === 'joined') {
+      setOnlineStatus('נמצא יריב! מתחילים...', 'success');
+      startOnlineAsGuest(result.code, nickname);
+    } else {
+      setOnlineStatus('חדר נוצר: ' + result.code + '. ממתין ליריב...', 'warn');
+      startOnlineAsHost(result.code, nickname);
+    }
+  } catch (err) {
     toggleOnlineControls(false);
-    setOnlineStatus('לא נמצא יריב כרגע. מתחילים מול בוט במצב אונליין.', 'success');
-    startGame({
-      gameMode: 'online',
-      nickname,
-      roomCode: null
-    });
-  }, delay);
+    setOnlineStatus('שגיאה בחיבור. נסה שוב.', 'error');
+  }
 }
 
-function handleCreateRoom() {
+async function handleCreateRoom() {
   if (selectedGameMode !== 'online') {
     selectedGameMode = 'online';
     saveGameMode(selectedGameMode);
@@ -632,31 +584,29 @@ function handleCreateRoom() {
     return;
   }
 
-  clearOnlineTimers();
+  toggleOnlineControls(true);
+  setOnlineStatus('יוצר חדר...', 'warn');
 
-  const roomCode = generateRoomCode();
-  pendingRoomCode = roomCode;
-  saveRoomMeta(roomCode, nickname);
+  try {
+    const code = await createRoom(nickname);
+    pendingRoomCode = code;
 
-  const roomCodeInput = document.getElementById('room-code-input');
-  if (roomCodeInput) {
-    roomCodeInput.value = roomCode;
+    const roomCodeInput = document.getElementById('room-code-input');
+    if (roomCodeInput) roomCodeInput.value = code;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+
+    setOnlineStatus('חדר נוצר: ' + code + ' (הועתק). ממתין ליריב...', 'success');
+    startOnlineAsHost(code, nickname);
+  } catch (err) {
+    toggleOnlineControls(false);
+    setOnlineStatus('שגיאה ביצירת חדר. נסה שוב.', 'error');
   }
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(roomCode).catch(() => {});
-  }
-
-  setOnlineStatus('החדר נוצר: ' + roomCode + '. כרגע מצב בטא, מתחילים מול בוט.', 'success');
-
-  startGame({
-    gameMode: 'online',
-    nickname,
-    roomCode
-  });
 }
 
-function handleJoinRoom() {
+async function handleJoinRoom() {
   if (selectedGameMode !== 'online') {
     selectedGameMode = 'online';
     saveGameMode(selectedGameMode);
@@ -676,24 +626,207 @@ function handleJoinRoom() {
     return;
   }
 
-  const room = loadRoomMeta(requestedCode);
-  if (!room) {
-    setOnlineStatus('לא מצאנו חדר עם הקוד הזה.', 'error');
-    return;
+  toggleOnlineControls(true);
+  setOnlineStatus('מצטרף לחדר...', 'warn');
+
+  try {
+    await joinRoom(requestedCode, nickname);
+    pendingRoomCode = requestedCode;
+    setOnlineStatus('הצטרפת לחדר ' + requestedCode + '!', 'success');
+    startOnlineAsGuest(requestedCode, nickname);
+  } catch (err) {
+    toggleOnlineControls(false);
+    const msg = err.message === 'ROOM_NOT_FOUND' ? 'לא נמצא חדר עם הקוד הזה.'
+      : err.message === 'ROOM_NOT_AVAILABLE' ? 'החדר כבר תפוס או שהמשחק התחיל.'
+      : err.message === 'ROOM_FULL' ? 'החדר מלא.'
+      : 'שגיאה בהצטרפות. נסה שוב.';
+    setOnlineStatus(msg, 'error');
   }
+}
 
-  pendingRoomCode = room.code;
-  if (roomCodeInput) {
-    roomCodeInput.value = room.code;
-  }
+// --- Online game launchers ---
 
-  setOnlineStatus('הצטרפת לחדר ' + room.code + '. כרגע מצב בטא, מתחילים מול בוט.', 'success');
+function startOnlineAsHost(code, nickname) {
+  onlineRole = 'host';
+  showScreen('game-screen');
+  renderSessionBannerOnline(code, 'ממתין ליריב...');
 
-  startGame({
-    gameMode: 'online',
-    nickname,
-    roomCode: room.code
+  hostGame(code, 2, selectedMatchMode, nickname, {
+    onGuestJoined: (guestNickname) => {
+      showToast(guestNickname + ' הצטרף!');
+      renderSessionBannerOnline(code, 'משחק נגד ' + guestNickname);
+    },
+    onGameStart: (hostState) => {
+      state = hostState;
+      turnCount = 0;
+      renderCurrentGame();
+      if (state.currentPlayer === 0) {
+        soundYourTurn();
+      }
+    },
+    onMyTurn: (hostState) => {
+      state = hostState;
+      soundYourTurn();
+      renderCurrentGame();
+    },
+    onOpponentTurn: (hostState) => {
+      state = hostState;
+      renderCurrentGame();
+      showOnlineThinking(true);
+    },
+    onStateUpdate: (hostState) => {
+      state = hostState;
+      renderCurrentGame();
+      showOnlineThinking(state.currentPlayer !== 0 && !isGuestBot());
+    },
+    onGameEnd: (hostState) => {
+      state = hostState;
+      endGame();
+    },
+    onGuestDisconnected: () => {
+      showOnlineDisconnect(true);
+    },
+    onGuestReconnected: () => {
+      showOnlineDisconnect(false);
+      showToast('היריב חזר!');
+    },
+    onGuestReplacedByBot: () => {
+      showOnlineDisconnect(false);
+      showToast('היריב התנתק. בוט משחק במקומו.');
+    },
+    onError: () => {
+      showToast('שגיאת חיבור');
+    },
+    onRoomDeleted: () => {
+      showToast('החדר נמחק');
+      backToMenu();
+    }
   });
+}
+
+function startOnlineAsGuest(code, nickname) {
+  onlineRole = 'guest';
+  showScreen('game-screen');
+  renderSessionBannerOnline(code, 'מתחבר...');
+
+  guestGame(code, {
+    onGameStart: (viewState) => {
+      state = viewState;
+      turnCount = 0;
+      renderOnlineGuestGame();
+      renderSessionBannerOnline(code, 'אונליין');
+    },
+    onMyTurn: (viewState) => {
+      state = viewState;
+      soundYourTurn();
+      renderOnlineGuestGame();
+      showOnlineThinking(false);
+    },
+    onOpponentTurn: (viewState) => {
+      state = viewState;
+      renderOnlineGuestGame();
+      showOnlineThinking(true);
+    },
+    onStateUpdate: (viewState) => {
+      state = viewState;
+      renderOnlineGuestGame();
+    },
+    onGameEnd: (viewState) => {
+      state = viewState;
+      endOnlineGuestGame();
+    },
+    onHostDisconnected: () => {
+      showOnlineDisconnect(true);
+    },
+    onHostReconnected: () => {
+      showOnlineDisconnect(false);
+      showToast('המארח חזר!');
+    },
+    onHostAbandoned: () => {
+      showOnlineDisconnect(false);
+      showToast('המארח התנתק. חוזרים לתפריט.');
+      setTimeout(backToMenu, 2000);
+    },
+    onError: () => {
+      showToast('שגיאת חיבור');
+    },
+    onRoomDeleted: () => {
+      showToast('החדר נמחק');
+      backToMenu();
+    }
+  });
+}
+
+function renderOnlineGuestGame() {
+  if (!state) return;
+  // Guest view: state.hands[0] = my hand, state.hands[1] = opponent (hidden cards)
+  renderGame(state, handleCardClick);
+  renderSessionBanner();
+}
+
+function endOnlineGuestGame() {
+  if (!state) return;
+  const iWon = state.winner === 0;
+
+  const endScreen = document.getElementById('end-screen');
+  if (endScreen) {
+    endScreen.classList.remove('end-win', 'end-lose');
+    endScreen.classList.add(iWon ? 'end-win' : 'end-lose');
+  }
+
+  if (iWon) {
+    soundWin();
+    showConfetti();
+    showEndScreen('\u{1F389} כל הכבוד! ניצחת!', 'שיחקת מעולה!');
+    announce('כל הכבוד! ניצחת!');
+  } else {
+    soundLose();
+    showEndScreen('היריב ניצח הפעם', 'נסה שוב!');
+    announce('היריב ניצח הפעם.');
+  }
+
+  updateEndButtons(true);
+}
+
+function renderSessionBannerOnline(code, status) {
+  const banner = document.getElementById('session-banner');
+  if (!banner) return;
+  banner.textContent = 'אונליין • חדר ' + code + '  •  ' + status;
+  banner.classList.remove('hidden');
+}
+
+function showOnlineThinking(show) {
+  let el = document.getElementById('online-thinking');
+  if (show) {
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'online-thinking';
+      el.className = 'online-thinking';
+      el.textContent = 'היריב חושב...';
+      const gameTable = document.querySelector('.game-table');
+      if (gameTable) gameTable.appendChild(el);
+    }
+    el.classList.remove('hidden');
+  } else if (el) {
+    el.classList.add('hidden');
+  }
+}
+
+function showOnlineDisconnect(show) {
+  let el = document.getElementById('online-disconnect');
+  if (show) {
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'online-disconnect';
+      el.className = 'online-disconnect';
+      el.textContent = 'היריב התנתק... ממתין 30 שניות';
+      const gameTable = document.querySelector('.game-table');
+      if (gameTable) gameTable.appendChild(el);
+    }
+    el.classList.remove('hidden');
+  } else if (el) {
+    el.classList.add('hidden');
+  }
 }
 
 function buildStartOptions(overrides = {}) {
@@ -735,7 +868,6 @@ function buildStartOptions(overrides = {}) {
 
 function startGame(overrides = {}) {
   clearBotTurnTimer();
-  clearOnlineTimers();
   toggleOnlineControls(false);
   animating = false;
   clearSnapshot();
@@ -792,6 +924,12 @@ function startNextRound() {
 }
 
 function handlePlayAgain() {
+  // Online games: go back to menu (no rematch in v1)
+  if (onlineRole) {
+    backToMenu();
+    return;
+  }
+
   if (!state) {
     startGame();
     return;
@@ -814,10 +952,21 @@ function handlePlayAgain() {
 
 function backToMenu() {
   clearBotTurnTimer();
-  clearOnlineTimers();
+
+  if (onlineRole === 'host') {
+    cleanupHost();
+  } else if (onlineRole === 'guest') {
+    cleanupGuest();
+  }
+  leaveRoom().catch(() => {});
+  onlineRole = null;
+
   clearSnapshot();
   state = null;
   animating = false;
+  showOnlineThinking(false);
+  showOnlineDisconnect(false);
+  toggleOnlineControls(false);
   showScreen('welcome-screen');
   syncWelcomeControls();
 }
@@ -849,12 +998,48 @@ async function handleCardClick(card) {
   // Wild card: show color picker first
   if (card.color === 'wild') {
     state.pendingAction = { type: 'colorPick', card };
-    persistState();
+    if (!onlineRole) persistState();
     showColorPicker();
     return;
   }
 
-  // Find the card element before state change removes it
+  // Online guest: send move intent to host
+  if (onlineRole === 'guest') {
+    const cardEl = document.querySelector('[data-card-id="' + card.id + '"]');
+    animating = true;
+    try {
+      soundCardPlay();
+      const discardEl = document.getElementById('discard-pile');
+      await flyCard(cardEl, discardEl);
+      animateCardToDiscard();
+    } finally {
+      animating = false;
+    }
+    await guestPlayCard(card.id, null);
+    return;
+  }
+
+  // Online host: use host module
+  if (onlineRole === 'host') {
+    const cardEl = document.querySelector('[data-card-id="' + card.id + '"]');
+    animating = true;
+    try {
+      soundCardPlay();
+      const discardEl = document.getElementById('discard-pile');
+      await flyCard(cardEl, discardEl);
+      animateCardToDiscard();
+    } finally {
+      animating = false;
+    }
+    if (card.type === 'special') {
+      playSpecialSound(card.value);
+      showActionFeedback(card.value);
+    }
+    hostPlayCard(card.id, null);
+    return;
+  }
+
+  // Local mode (original logic)
   const cardEl = document.querySelector('[data-card-id="' + card.id + '"]');
 
   const success = playCard(state, 0, card.id);
@@ -862,7 +1047,6 @@ async function handleCardClick(card) {
 
   state.hasDrawnThisTurn = false;
 
-  // Animate card flight to discard pile
   animating = true;
   try {
     soundCardPlay();
@@ -878,7 +1062,6 @@ async function handleCardClick(card) {
     showActionFeedback(card.value);
   }
 
-  // Last card penalty: player has 1 card left but didn't call last card
   if (state.hands[0].length === 1 && !state.lastCardCalledBy.has(0)) {
     drawCards(state, 0, 2);
   }
@@ -896,9 +1079,6 @@ async function handleColorChoice(color) {
   state.pendingAction = null;
   hideColorPicker();
 
-  playCard(state, 0, card.id, color);
-  state.hasDrawnThisTurn = false;
-
   animating = true;
   try {
     soundWild();
@@ -913,7 +1093,22 @@ async function handleColorChoice(color) {
     showActionFeedback('wild_draw_four');
   }
 
-  // Last card penalty: player has 1 card left but didn't call last card
+  // Online guest: send move intent
+  if (onlineRole === 'guest') {
+    await guestPlayCard(card.id, color);
+    return;
+  }
+
+  // Online host: use host module
+  if (onlineRole === 'host') {
+    hostPlayCard(card.id, color);
+    return;
+  }
+
+  // Local mode
+  playCard(state, 0, card.id, color);
+  state.hasDrawnThisTurn = false;
+
   if (state.hands[0].length === 1 && !state.lastCardCalledBy.has(0)) {
     drawCards(state, 0, 2);
   }
@@ -928,7 +1123,29 @@ async function handleDrawPile() {
   if (state.pendingAction) return;
   if (animating) return;
 
-  // One draw per turn — block additional draws
+  // Online guest: send draw intent
+  if (onlineRole === 'guest') {
+    if (state.hasDrawnThisTurn) {
+      showToast('כבר שלפת, תורך עבר');
+      return;
+    }
+    soundCardDraw();
+    await guestDrawCard();
+    return;
+  }
+
+  // Online host: use host module
+  if (onlineRole === 'host') {
+    const result = hostDrawCard();
+    if (!result) return;
+    soundCardDraw();
+    if (!result.canPlay) {
+      showToast('שלפת קלף ועברת...');
+    }
+    return;
+  }
+
+  // Local mode (original logic)
   if (state.hasDrawnThisTurn) {
     showToast('כבר שלפת, תורך עבר');
     state.hasDrawnThisTurn = false;
@@ -969,7 +1186,15 @@ async function handleDrawPile() {
 
 function handleLastCardCall() {
   if (!state) return;
-  state.lastCardCalledBy.add(0);
+
+  if (onlineRole === 'guest') {
+    guestCallLastCard();
+  } else if (onlineRole === 'host') {
+    hostCallLastCard();
+  } else {
+    state.lastCardCalledBy.add(0);
+  }
+
   soundLastCard();
   showLastCardPopup();
   renderCurrentGame();

@@ -2410,3 +2410,69 @@ html, body {
     font-size: 16px;
   }
 }
+
+/* === Online Multiplayer UI === */
+
+.online-thinking {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60px);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 50;
+  pointer-events: none;
+  animation: onlinePulse 1.5s ease-in-out infinite;
+}
+
+.online-thinking.hidden {
+  display: none;
+}
+
+.online-disconnect {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e53935;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 60;
+  animation: onlinePulse 1s ease-in-out infinite;
+}
+
+.online-disconnect.hidden {
+  display: none;
+}
+
+@keyframes onlinePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.online-status {
+  font-size: 13px;
+  min-height: 20px;
+  margin-top: 8px;
+  text-align: center;
+  transition: color 0.2s;
+}
+
+.online-status.warn {
+  color: #ff9800;
+}
+
+.online-status.error {
+  color: #e53935;
+}
+
+.online-status.success {
+  color: #4caf50;
+}
