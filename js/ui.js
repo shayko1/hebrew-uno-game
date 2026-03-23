@@ -351,8 +351,9 @@ export function renderCenterArea(state) {
     drawCount.classList.add('draw-count');
     drawPileEl.appendChild(drawCount);
   }
-  drawCount.textContent = state.drawPile.length;
-  if (state.drawPile.length <= 10 && state.drawPile.length > 0) {
+  const drawPileSize = state.drawPile ? state.drawPile.length : (state.drawPileCount || 0);
+  drawCount.textContent = drawPileSize;
+  if (drawPileSize <= 10 && drawPileSize > 0) {
     drawCount.classList.add('draw-count-low');
   } else {
     drawCount.classList.remove('draw-count-low');

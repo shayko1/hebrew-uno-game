@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tsivoni-v6';
+const CACHE_NAME = 'tsivoni-v7';
 const ASSETS = [
   '/hebrew-uno-game/',
   '/hebrew-uno-game/index.html',

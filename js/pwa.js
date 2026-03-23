@@ -21,7 +21,14 @@ export function initPWA() {
         if (!newWorker) return;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner();
+            // Auto-reload if user is on welcome screen (not mid-game)
+            const gameScreen = document.getElementById('game-screen');
+            const isInGame = gameScreen && !gameScreen.classList.contains('hidden');
+            if (!isInGame) {
+              window.location.reload();
+            } else {
+              showUpdateBanner();
+            }
           }
         });
       });
